@@ -39,6 +39,11 @@ def get_total_facts(connection):
         last_count_time = current_time
     return cached_count
 
+@app.route('/')
+def default_test():
+    return "Updated live from 3/05/2024, 11:07am"
+
+
 @app.route('/randomfact')
 def random_fact():
     connection = pyodbc.connect(connection_string)
