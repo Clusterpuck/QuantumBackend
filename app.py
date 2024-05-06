@@ -72,7 +72,7 @@ def get_total_facts():
 
 @app.get("/")
 def default_test():
-    return "Testing pipeline for github to Azure 6/05/2024 11:25pm"
+    return "Testing pipeline for github to Azure 7/05/2024 12:25am"
 
 @app.get("/randomfact")
 def random_fact():
