@@ -48,7 +48,7 @@ jobs:
         password: ${{ secrets.REGISTRY_PASSWORD }}
 
     - run: |
-        docker build . -t quantumdeliveryregistry.azurecr.io/quantumbackend:${{ github.sha }}
+        docker build -f Dockerfile -t quantumdeliveryregistry.azurecr.io/quantumbackend:${{ github.sha }}
         docker push quantumdeliveryregistry.azurecr.io/quantumbackend:${{ github.sha }}     
 
     - uses: azure/webapps-deploy@v2
