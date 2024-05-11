@@ -19,19 +19,6 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# These calls add requirements to SSH into the component
-
-# COPY entrypoint.sh ./
-
-# Start and enable SSH
-# RUN apt-get update \
-#     && apt-get install -y --no-install-recommends dialog \
-#     && apt-get install -y --no-install-recommends openssh-server \
-#     && echo "root:Docker!" | chpasswd \
-#     && chmod u+x ./entrypoint.sh
-# COPY sshd_config /etc/ssh/
-# ENTRYPOINT [ "./entrypoint.sh" ] 
-
 EXPOSE 8000 2222
 
 # Copy the rest of the application code to the working directory
@@ -40,7 +27,7 @@ COPY . .
 # Command options to run the application
 
 # Line to use when implemented with gunicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # For a non-gunicorn implementation
-# CMD ["python3", "app2.py"]
+CMD ["python3", "app2.py"]
