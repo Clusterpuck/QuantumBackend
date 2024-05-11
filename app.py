@@ -8,7 +8,7 @@ import pyodbc
 load_dotenv()
 
 # Access environment variables
-server = os.getenv('QUANTUM_DB_SERVER')
+server = 'tcp:quantumsqlserver.database.windows.net,1433' # os.getenv('QUANTUM_DB_SERVER')
 database = os.getenv('QUANTUM_DB_NAME')
 username = os.getenv('QUANTUM_DB_USERNAME')
 password = os.getenv('QUANTUM_DB_PASSWORD')
@@ -48,7 +48,7 @@ def get_total_facts():
 
 @app.get("/")
 def default_test():
-    return "Updated github actions with better yml files to deploy 11/05/24 11:30AM"
+    return "Updated to define port explicitly in server string 11/05/24 7:44PM"
 
 @app.get("/randomfact")
 def random_fact():
