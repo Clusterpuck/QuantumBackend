@@ -48,7 +48,7 @@ def get_total_facts():
 
 @app.get("/")
 def default_test():
-    return "Testing local image build for to resolve ODBC errors 10/05/24 3:55pm"
+    return "Removed workflow 11/05/24 11:15pm"
 
 @app.get("/randomfact")
 def random_fact():
