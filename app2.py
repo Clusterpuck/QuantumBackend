@@ -70,7 +70,7 @@ def get_total_facts():
 
 @app.route('/')
 def default_test():
-    return "Changed to not close connection Updated live from 4/05/2024, 15:18"
+    return "Set back to Flask loading for SQL 11/05/24 17:36"
 
 
 @app.route('/randomfact')
