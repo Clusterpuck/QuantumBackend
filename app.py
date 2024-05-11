@@ -48,7 +48,7 @@ def get_total_facts():
 
 @app.get("/")
 def default_test():
-    return "Removed workflow 11/05/24 11:15pm"
+    return "Updated github actions with better yml files to deploy 11/05/24 11:30AM"
 
 @app.get("/randomfact")
 def random_fact():
