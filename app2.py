@@ -25,4 +25,4 @@ def random_fact():
     return jsonify({'fact': facts[random_fact_id]})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000) # Replace with desired port number
+    app.run(host='0.0.0.0', port=8000) #Port number is defined for container

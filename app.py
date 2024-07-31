@@ -1,9 +1,14 @@
 import random
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 app = FastAPI()
 
 facts = ["One", "Two", "Three", "Four", "Five"]
+
+#Needed for defining an incoming class
+class Fact(BaseModel):
+    fact: str
 
 def get_total_facts():
         return len(facts)
@@ -22,3 +27,8 @@ def random_fact():
     random_fact_id = random.randint(1, total_facts-1)
 
     return {'fact': facts[random_fact_id]}
+
+@app.post("/addfact")
+def add_fact(new_fact: Fact):
+    facts.append(new_fact.fact)
+    return {"message": "Fact added successfully", "total_facts": get_total_facts()}
