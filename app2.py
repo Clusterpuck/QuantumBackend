@@ -70,7 +70,8 @@ def get_total_facts():
 
 @app.route('/')
 def default_test():
-    return "Updated to define port explicitly in server string 11/05/24 7:44PM"
+    #return "Updated to define port explicitly in server string 11/05/24 7:44PM"
+    return "kwijuhygvg"
 
 
 @app.route('/randomfact')
