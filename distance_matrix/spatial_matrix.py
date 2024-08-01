@@ -1,6 +1,11 @@
 from distance_matrix.distance_matrix import DistanceMatrix
 from cluster_hierarchy_tree import TreeNode
+from geographic_processing import geographic_array, geographic_to_cartesian
+
 import numpy as np
+import os
+import pandas as pd
+from math import sqrt
 
 class SpatialMatrix(DistanceMatrix):
 
@@ -16,16 +21,43 @@ class SpatialMatrix(DistanceMatrix):
                 # If i==j, set to 0
         # return matrix
 
-
+    #TODO: Fix this mess, looks terrible
     def build_leaf_matrix(self, node):
         # Implement matrix creation
         print("Building SpatialMatrix for leaf")
         customers = node.get_customers()
         n = len(customers)
-        np.zeros((n, n), dtype=float) # Create n x n zero-filled array
+        matrix = np.zeros((n, n), dtype=float) # Create n x n zero-filled array
+
         # Query for lat, long for each point
             # Geographic processing, geographic array
             # geographic_to_cartesian
+        connection_string = os.getenv('QuantumTestString')
+        df = pd.DataFrame(customers)
+        geo_array = geographic_array(df,connection_string)        # np.array: [[Latitude,Longitude]]
+        cartesian_array = geographic_to_cartesian(geo_array)
+
+        # Double for loop over coords
+        for i in range(len(customers)):
+            for j in range(len(customers)):
+                # Identity set to 0
+                if i == j:
+                    matrix[i][j] = 0
+                # Set distance
+                else:
+                    matrix[i][j] = self.get_3D_distance(cartesian_array[i], cartesian_array[j])
+        print("returning: \n", matrix)
+        return matrix
+
+    def get_3D_distance(self, p1 : np.ndarray, p2: np.ndarray):
+
+        # Differences between 2 points
+        delta_x = p2[0] - p1[0]
+        delta_y = p2[1] - p1[1]
+        delta_z = p2[2] - p1[2]
+        
+        distance = sqrt(delta_x**2 + delta_y**2 + delta_z**2)
+        return distance
         # Double for loop over coords
             # Find cartesian distance (A + A_end -> B_start)
             # If i==j, set to 0
