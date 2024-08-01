@@ -13,6 +13,43 @@ class SpatialMatrix(DistanceMatrix):
         # Implement matrix creation
         print("Building SpatialMatrix for parent")
         # query children for starts and ends
+        nodes = node.get_children()
+        start_points = []
+        end_points = []
+        internal_costs = []
+        for x in nodes:
+            print("LOOPING", x)
+            print("START", x.get_route()[0])
+            print("END", x.get_route()[-1])
+            start_points.append(x.get_route()[0])
+            end_points.append(x.get_route()[-1])
+            internal_costs.append(x.get_cost())
+        print("start_points", start_points)
+        print("end_points", end_points)
+        print("internal_costs", internal_costs)
+
+        n = len(start_points)
+        matrix = np.zeros((n, n), dtype=float)
+
+        connection_string = os.getenv('QuantumTestString')
+        df1 = pd.DataFrame(start_points)
+        df2 = pd.DataFrame(end_points)
+        geo_array1 = geographic_array(df1,connection_string)        # np.array: [[Latitude,Longitude]]
+        cartesian_array1 = geographic_to_cartesian(geo_array1)
+        geo_array2 = geographic_array(df2,connection_string)        # np.array: [[Latitude,Longitude]]
+        cartesian_array2 = geographic_to_cartesian(geo_array2)
+        
+        # loop over coords to build matrix
+        for i in range(len(end_points)):
+            for j in range(len(start_points)):
+                if i == j:
+                    matrix[i][j] = internal_costs[i]
+                else:
+                    matrix[i][j] = self.__get_3D_distance(cartesian_array2[i], cartesian_array1[j])
+                print(matrix, end_points[i], start_points[j])
+        print("Returned: ", matrix)
+        return matrix
+            
         # query for lat, long for start and end. store as [x_start, x_end, y_start, y_end, ...]? or Seperate? works either way
             # Geographic processing, geographic array
             # geographic_to_cartesian
