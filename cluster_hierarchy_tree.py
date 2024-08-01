@@ -86,9 +86,9 @@ class TreeNode:
         if self.children == []:
             print(self)
             x = distance_matrix.build_leaf_matrix(self)
+            print("x", x)
             print("DONE")
             y = route_solver.solve(x)
-            print("x", x)
             print("y", y)
             #Solve Leaf
         else:
