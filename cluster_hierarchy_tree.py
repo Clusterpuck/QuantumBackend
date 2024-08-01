@@ -86,13 +86,32 @@ class TreeNode:
         if self.children == []:
             print(self)
             x = distance_matrix.build_leaf_matrix(self)
+            print("x", x)
             print("DONE")
             y = route_solver.solve(x)
-            print("x", x)
-            print("y", y)
+            # Translate the index route to actual route
+            customers = self.get_customers()
+            optimal_route = []
+            for index, item in enumerate(y[0]):
+                #print("LOOPING HERE", customers[index])
+                optimal_route.append(customers[index])
+            self.route = optimal_route
+            self.cost = y[1]
+            #print("y", y)
             #Solve Leaf
         else:
             print("Parent")
+            x = distance_matrix.build_parent_matrix(self)
+            y = route_solver.solve(x) # Works
+            print("y", y[0])
+            customers = self.get_customers() #NOTE: This is the problem. Parents do not have proper routes yet. Make function to resolve.
+            
+            optimal_route = []
+            for index, item in enumerate(y[0]):
+                #print("LOOPING HERE", customers[index])
+                optimal_route.append(customers[index])
+            self.route = optimal_route
+            self.cost = y[1]
             #Solve Parent
         
         
