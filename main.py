@@ -40,9 +40,9 @@ if __name__=="__main__":
     print(geographic_array(df,connection_string))
 
     #WORKS
-    context = DistanceMatrixContext(SpatialMatrix())
-    context.build_leaf_matrix(tree)
-    context.build_parent_matrix(tree)
+    #context = DistanceMatrixContext(SpatialMatrix())
+    #context.build_leaf_matrix(tree)
+    #context.build_parent_matrix(tree)
 
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
