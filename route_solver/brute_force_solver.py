@@ -20,7 +20,8 @@ class BruteForceSolver(RouteSolver):
 
     def __get_route_cost(self, route, distance_matrix):
         cost = 0
-        order = range(len(route - 1)) # Range from 0 to size of route (no need to add cost of last node)
+        print(route)
+        order = range(len(route) - 1) # Range from 0 to size of route (no need to add cost of last node)
 
         for i in order:
             cost += distance_matrix[route[i]][route[i + 1]] # Add cost of current node and path to the next
