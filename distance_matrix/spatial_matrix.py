@@ -12,6 +12,7 @@ class SpatialMatrix(DistanceMatrix):
     def build_parent_matrix(self, node: TreeNode):
         # Implement matrix creation
         print("Building SpatialMatrix for parent")
+        # query children for starts and ends
         # query for lat, long for start and end. store as [x_start, x_end, y_start, y_end, ...]? or Seperate? works either way
             # Geographic processing, geographic array
             # geographic_to_cartesian
@@ -35,30 +36,24 @@ class SpatialMatrix(DistanceMatrix):
         connection_string = os.getenv('QuantumTestString')
         df = pd.DataFrame(customers)
         geo_array = geographic_array(df,connection_string)        # np.array: [[Latitude,Longitude]]
-        cartesian_array = geographic_to_cartesian(geo_array)
+        cartesian_array = geographic_to_cartesian(geo_array)      # np.array: [[x,y,z]]
 
-        # Double for loop over coords
+        # loop over coords to build matrix
         for i in range(len(customers)):
             for j in range(len(customers)):
-                # Identity set to 0
                 if i == j:
                     matrix[i][j] = 0
-                # Set distance
                 else:
-                    matrix[i][j] = self.get_3D_distance(cartesian_array[i], cartesian_array[j])
-        print("returning: \n", matrix)
+                    matrix[i][j] = self.__get_3D_distance(cartesian_array[i], cartesian_array[j])
         return matrix
 
-    def get_3D_distance(self, p1 : np.ndarray, p2: np.ndarray):
+    #TODO: Can fully document, simple function
+    def __get_3D_distance(self, p1 : np.ndarray, p2: np.ndarray):
 
-        # Differences between 2 points
+        # Differences between 2 points on each axes
         delta_x = p2[0] - p1[0]
         delta_y = p2[1] - p1[1]
         delta_z = p2[2] - p1[2]
         
         distance = sqrt(delta_x**2 + delta_y**2 + delta_z**2)
         return distance
-        # Double for loop over coords
-            # Find cartesian distance (A + A_end -> B_start)
-            # If i==j, set to 0
-        # return matrix
