@@ -33,7 +33,7 @@ if __name__=="__main__":
     runsheet_dictionary = create_dictionary(runsheet)
     print(allocation_array)
     tree = None
-    tree = partition_routes2(allocation_array, 2, runsheet_dictionary)
+    tree = partition_routes2(allocation_array, 1, runsheet_dictionary)
     print(allocation_array)
     print(tree)
     connection_string = os.getenv('QuantumTestString')
@@ -47,6 +47,7 @@ if __name__=="__main__":
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
     tree.post_order_dfs2(dm, rs)
+    print(tree)
 
 
     #tree.solve_tree()
