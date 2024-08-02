@@ -1,6 +1,7 @@
 from cluster_tree_solver import solve_tree, brute_force_solve
 from distance_matrix.distance_matrix import DistanceMatrix
 from route_solver.route_solver import RouteSolver
+import numpy as np
 
 class TreeNode:
     def __init__(self, cluster_id, customers=None, route=None):
@@ -56,10 +57,11 @@ class TreeNode:
     def _post_order_dfs_helper2(self, node, distance_matrix, route_solver):
         for child in node.children:
             self._post_order_dfs_helper2(child, distance_matrix, route_solver)
-        node.solve_node(distance_matrix, route_solver)
+        if node.get_id() != "root":
+            node.solve_node(distance_matrix, route_solver)
 
     def __repr__(self, level=0):
-        ret = "\t" * level + repr(self.id) + ": " + repr(self.customers) + "\n"
+        ret = "\t" * level + repr(self.id) + ": " + repr(self.customers) + repr(self.route) + "\n"
         for child in self.children:
             ret += child.__repr__(level + 1)
         return ret
@@ -105,18 +107,32 @@ class TreeNode:
             y = route_solver.solve(x) # Works
             print("y", y[0])
             customers = self.get_customers() #NOTE: This is the problem. Parents do not have proper routes yet. Make function to resolve.
-            
-            optimal_route = []
-            for index, item in enumerate(y[0]):
+            children = self.get_children()
+            Alist = np.empty(len(children), dtype=object)
+            for idx, data in enumerate(y):
+                print("idx", idx)
+                Alist[idx] = children[idx].get_route()
+            Blist = []
+            for i in Alist:
+                print("i", i)
+                for j in i:
+                    Blist.append(j)
+            print(Alist)
+            print(Blist)
+            print(len(Blist))
+
+            #NOTE: IDK what's happening from here downwards
+            optimal_route = Blist
+            #for index, item in enumerate(y[0]):
                 #print("LOOPING HERE", customers[index])
-                optimal_route.append(customers[index])
-            self.route = optimal_route
+                #optimal_route.append(Blist[index])
+            print("optimal_route", optimal_route)
+            self.customers = Blist
+            self.route = Blist #optimal_route
             self.cost = y[1]
+            print("                     DID A THING")
             #Solve Parent
-        
-        
-        
-        
+
         # The post-order stuff
         # on "result.append(node.id)", call solve
         # solve needs to:
