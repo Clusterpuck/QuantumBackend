@@ -12,6 +12,7 @@ class SpatialMatrix(DistanceMatrix):
     def build_parent_matrix(self, node: TreeNode):
         # Implement matrix creation
         print("Building SpatialMatrix for parent")
+        print("Building SpatialMatrix for parent", node.get_id())
         # query children for starts and ends
         nodes = node.get_children()
         start_points = []
@@ -63,6 +64,7 @@ class SpatialMatrix(DistanceMatrix):
     def build_leaf_matrix(self, node):
         # Implement matrix creation
         print("Building SpatialMatrix for leaf")
+        print("Building SpatialMatrix for leaf", node.get_id())
         customers = node.get_customers()
         n = len(customers)
         matrix = np.zeros((n, n), dtype=float) # Create n x n zero-filled array
