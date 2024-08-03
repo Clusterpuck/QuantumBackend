@@ -23,7 +23,7 @@ def random_fact():
         #Sample exception handling
         return jsonify({'error': 'Failed to retrieve facts from database'}), 500
 
-    random_fact_id = random.randint(1, total_facts-1)
+    random_fact_id = random.randint(0, total_facts-1)
     return jsonify({'fact': facts[random_fact_id]})
 
 
