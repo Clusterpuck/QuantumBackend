@@ -24,7 +24,7 @@ def random_fact():
         #Sample exception handling
         raise HTTPException(status_code=500, detail="Failed to retrieve facts")
 
-    random_fact_id = random.randint(1, total_facts-1)
+    random_fact_id = random.randint(0, total_facts-1)
 
     return {'fact': facts[random_fact_id]}
 
