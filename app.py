@@ -15,7 +15,7 @@ def get_total_facts():
 
 @app.get("/")
 def default_test():
-    return "Removed database connection"
+    return "Switching to FastAPI"
 
 @app.get("/randomfact")
 def random_fact():
