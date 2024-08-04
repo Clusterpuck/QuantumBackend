@@ -1,8 +1,12 @@
 import random
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from apps.sub import api_router
+
 
 app = FastAPI()
+
+app.include_router(api_router)
 
 facts = ["One", "Two", "Three", "Four", "Five"]
 
