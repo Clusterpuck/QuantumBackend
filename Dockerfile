@@ -27,7 +27,7 @@ COPY . .
 # Command options to run the application
 
 # Line to use when implemented with gunicorn
-# CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # For a non-gunicorn implementation
-CMD ["python3", "app2.py"]
+# CMD ["python3", "app2.py"]
