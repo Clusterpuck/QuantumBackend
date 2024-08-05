@@ -37,18 +37,13 @@ def get_customer_allocation(runsheet, k):
     except (TypeError, ValueError, pyodbc.DatabaseError) as ex:
         print(ex)
     if valid:
-        #geo_array = geographic_array(runsheet,connection_string)        # np.array: [[Latitude,Longitude]]
-        #print("geo_array:", geo_array)
-        #cartesian_array = geographic_to_cartesian(geo_array)            # np.array: [[x,y,z]]
-        #print(cartesian_array)
-        cartesian_array = get_cartesian(runsheet, connection_string)
+        cartesian_array = runsheet_to_cartesian(runsheet, connection_string)
         return get_customer_allocation2(k, cartesian_array)
     else:
-        # Raise Exception?
         print("Input was not valid")
 
 # This should be moved elsewhere
-def get_cartesian(runsheet, connection_string):
+def runsheet_to_cartesian(runsheet, connection_string):
     geo_array = geographic_array(runsheet,connection_string)        # np.array: [[Latitude,Longitude]]
     cartesian_array = geographic_to_cartesian(geo_array)
     return cartesian_array 

@@ -1,8 +1,6 @@
 import pyodbc
 
-#TODO Needs more connection_string handling, have some exceptions called here, caught in validation or wherever it is called
-# View test_validation_entries.py to find possible cases
-# Maybe just pyodbc.Error?
+#NOTE Entire file no needed, delete later
 class DatabaseConnector:
     def __init__(self, connection_string):
         self.connection_string = connection_string

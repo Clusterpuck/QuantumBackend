@@ -2,7 +2,7 @@ import numpy as np
 import pyodbc
 import os
 from sklearn.cluster import KMeans
-from customer_allocation.customer_allocation import get_cartesian, get_customer_allocation2
+from customer_allocation.customer_allocation import runsheet_to_cartesian, get_customer_allocation2
 from cluster_hierarchy_tree import *
 import pandas as pd
 
@@ -145,7 +145,7 @@ def get_subsheet(allocation_array, runsheet_dictionary, cluster):
         connection_string = os.getenv('QuantumTestString')
     except (pyodbc.DatabaseError) as ex:
         print(ex)
-    cartestian_array = get_cartesian(subsheet, connection_string)
+    cartestian_array = runsheet_to_cartesian(subsheet, connection_string)
     if cartestian_array.size != 3:
         output = get_customer_allocation2(2, cartestian_array)
     else:
@@ -205,7 +205,7 @@ def recursive_split(runsheet_dictionary, number, allocation_array, new_array):
         connection_string = os.getenv('QuantumTestString')
     except (pyodbc.DatabaseError) as ex:
         print(ex)
-    cartestian_array = get_cartesian(subsheet, connection_string)
+    cartestian_array = runsheet_to_cartesian(subsheet, connection_string)
     output = get_customer_allocation2(2, cartestian_array) #TODO Rename this, it is cursed, Also k value optimisation
     #TODO GET CUSTOMERS /\
     #print(output)
