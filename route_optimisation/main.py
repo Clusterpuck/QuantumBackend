@@ -1,4 +1,4 @@
-from customer_allocation import get_customer_allocation, create_dictionary
+from customer_allocation.customer_allocation import get_customer_allocation, create_dictionary
 from route_partitioning import *
 from geographic_processing import geographic_array
 from distance_matrix.distance_matrix_context import DistanceMatrixContext

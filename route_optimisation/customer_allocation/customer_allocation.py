@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 from collections import OrderedDict
 
 
-from validation import validate_inputs
+from customer_allocation.validation import validate_inputs
 from geographic_processing import geographic_array, geographic_to_cartesian
 
 #TODO Input Validation 
@@ -47,6 +47,7 @@ def get_customer_allocation(runsheet, k):
         # Raise Exception?
         print("Input was not valid")
 
+# This should be moved elsewhere
 def get_cartesian(runsheet, connection_string):
     geo_array = geographic_array(runsheet,connection_string)        # np.array: [[Latitude,Longitude]]
     cartesian_array = geographic_to_cartesian(geo_array)
