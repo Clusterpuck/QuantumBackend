@@ -1,4 +1,3 @@
-from cluster_tree_solver import solve_tree, brute_force_solve
 from distance_matrix.distance_matrix import DistanceMatrix
 from route_solver.route_solver import RouteSolver
 import numpy as np
