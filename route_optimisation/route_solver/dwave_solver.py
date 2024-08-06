@@ -1,8 +1,8 @@
 import numpy as np
 import dimod
 
-from route_solver import RouteSolver
-from quantum_tsp.tsp_formulation import TSPFormulation
+from .route_solver import RouteSolver
+from .quantum_tsp.tsp_formulation import TSPFormulation
 
 
 class DWaveSolver(RouteSolver):
@@ -89,18 +89,20 @@ class DWaveSolver(RouteSolver):
         )
 
         # Try sending to D-Wave machine
-        retries = 0
+        tries = 0
         best_route = None
-        while best_route is not None and retries < self.__max_retries:
+        while best_route is None and tries < self.__max_retries:
             response = self.__sampler.sample_qubo(
                 qubo, chain_strength=self.__chain_strength, num_reads=self.__num_runs
             )
             best_route = self.__decode_solution(response)
+            tries += 1
 
-        if retries < self.__max_retries:
+        if best_route is None:
             raise RuntimeError("No valid D-Wave solution received")
-            # TODO: Implement a custom error that doesn't hard crash, or else return a guess?
+            # TODO: Implement a catchable custom error, or else return a guess?
 
+        # Finally, derive cost
         current_cost = self.__get_route_cost(
             best_route, distance_matrix, self.__is_circuit
         )
@@ -172,7 +174,7 @@ class DWaveSolver(RouteSolver):
             The valid route with the lowest energy, if found.
         """
         valid_distribution = {}
-        min_energy = np.argmax(response.record.energy)
+        min_energy = np.max(response.record.energy)
         best_solution = None
         node_count = int(np.sqrt(len(response.record[0].sample)))
 
