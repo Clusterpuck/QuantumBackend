@@ -1,9 +1,5 @@
-from dwave.system.composites import EmbeddingComposite
-from dwave.system.samplers import DWaveSampler
 import numpy as np
 import dimod
-
-import os
 
 from route_solver import RouteSolver
 from quantum_tsp.tsp_formulation import TSPFormulation
@@ -13,6 +9,7 @@ class DWaveSolver(RouteSolver):
 
     def __init__(
         self,
+        sampler: dimod.Sampler,  # Injection allows mocking for offline testing
         cost_factor: int = 10,
         constraint_factor: int = 800,
         chain_strength: int = 800,  # TODO: Check if chain breaks is a problem based on valid solution count and chain_break_frequency. If so, bump it to 1000
@@ -28,6 +25,8 @@ class DWaveSolver(RouteSolver):
 
         Parameters
         ----------
+        sampler : Sampler
+            Configured, DWave sampler.
         cost_factor : int, default=10
             Scales QUBO weight for costs. Cannot exceed constraint factor.
         constraint_factor : int, default=800
@@ -41,22 +40,13 @@ class DWaveSolver(RouteSolver):
         is_circuit : bool, default=False
             If False, reformulates as a minimum path variation.
         """
+        self.__sampler = sampler
         self.__cost_factor = cost_factor
         self.__constraint_factor = constraint_factor
         self.__chain_strength = chain_strength
         self.__num_runs = num_runs
         self.__max_retries = max_retries
         self.__is_circuit = is_circuit
-
-        # Create sampler
-        sampler_config = {
-            "token": os.environ[
-                "DWAVE_TOKEN"
-            ],  # TODO: Might need to validate these somewhere else
-            "endpoint": os.environ["DWAVE_URL"],
-            "solver": os.environ["DWAVE_SOLVER"],
-        }
-        self.__sampler = EmbeddingComposite(DWaveSampler(**sampler_config))
 
     def solve(self, distance_matrix: np.ndarray) -> tuple[list[int], int]:
         """
