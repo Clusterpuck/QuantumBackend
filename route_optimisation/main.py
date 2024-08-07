@@ -10,13 +10,14 @@ from route_solver.brute_force_solver import BruteForceSolver
 def new_main():
     runsheet = JSON_to_pandas()
     k = 3
-    allocation_array = get_customer_allocationV2(runsheet, k)
-    runsheet_dictionary = create_dictionaryV2(runsheet)
-    tree = partition_routesV2(allocation_array, 1, runsheet_dictionary)
-
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
-    tree.post_order_dfs2(dm, rs, runsheet_dictionary)
+
+    allocation_array = get_customer_allocationV2(runsheet, k)
+    runsheet_dictionary = create_dictionaryV2(runsheet)
+    tree = partition_routesV3(allocation_array, 2, runsheet_dictionary, dm, rs)
+
+    #tree.post_order_dfs2(dm, rs, runsheet_dictionary)
     print(tree)
     print(allocation_array)
 

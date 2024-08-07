@@ -1,7 +1,4 @@
 import numpy as np
-import pyodbc
-import os
-from sklearn.cluster import KMeans
 from geographic_processing import runsheet_to_cartesianV2
 from customer_allocation.customer_allocation import k_means
 from cluster_hierarchy_tree import *
@@ -12,6 +9,13 @@ def partition_routesV2(allocation_array, split_threshold, runsheet_dictionary):
     copy = allocation_array.copy()
     new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
     new_array = recursion3V2(copy, runsheet_dictionary, 0, new_array, split_threshold, None, None, tree) # Pass in the tree
+    return tree
+
+def partition_routesV3(allocation_array, split_threshold, runsheet_dictionary, dm, rs):
+    tree = TreeNode("root")
+    copy = allocation_array.copy()
+    new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
+    new_array = recursionV3(copy, runsheet_dictionary, 0, new_array, split_threshold, None, None, tree, dm, rs) # Pass in the tree
     return tree
 
 def recursion3V2(allocation_array, runsheet_dictionary, cluster_number, new_array, split_threshold, processed_clusters=None, other_clusters=None, cluster_tree=None):
@@ -48,6 +52,48 @@ def recursion3V2(allocation_array, runsheet_dictionary, cluster_number, new_arra
                     leaf.add_customer(key)
                 cluster_tree.add_child(leaf)
     return new_array
+
+
+# Recurse, build and solve in 1 loop
+def recursionV3(allocation_array, runsheet_dictionary, cluster_number, new_array, split_threshold, processed_clusters=None, other_clusters=None, cluster_tree=None, dm=None, rs=None):
+    if processed_clusters is None:
+        processed_clusters = set()
+
+    if other_clusters is None:
+        thing = allocation_array.copy()
+    else:
+        thing = other_clusters.copy()
+
+    for cluster in np.unique(thing):
+
+        if cluster in processed_clusters:
+            continue
+
+        points = np.where(allocation_array == cluster)[0]
+        if points.size > split_threshold:
+            comparison = allocation_array.copy()
+            temp_array = get_subsheetV2(allocation_array, runsheet_dictionary, cluster)
+            y = find_added_values(comparison, temp_array)
+
+            cluster_number += 1
+            # If you entering this, then you are trying to split. Create a parent node here, pass parent in
+            parent = TreeNode(cluster)
+            cluster_tree.add_child(parent)
+            new_array = recursionV3(temp_array, runsheet_dictionary, cluster_number, temp_array, split_threshold, processed_clusters, y, parent, dm, rs)
+            parent.solve_node(dm, rs, runsheet_dictionary)
+        else:
+            processed_clusters.add(cluster)
+            if points.size > 0:
+                leaf = TreeNode(cluster)
+                for point in points:
+                    key = list(runsheet_dictionary.keys())[point]
+                    leaf.add_customer(key)
+                cluster_tree.add_child(leaf)
+                leaf.solve_node(dm, rs, runsheet_dictionary)
+    return new_array
+
+    
+
 
 # TODO: This is what needs to be changed
 def get_subsheetV2(allocation_array, runsheet_dictionary, cluster):
