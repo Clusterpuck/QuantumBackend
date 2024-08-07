@@ -22,27 +22,17 @@ def new_main():
 
 
 def JSON_to_pandas():
-    print("Grab JSON object and turn it into a dataframe")
+    newdata = {
+        'ID': [11, 12, 13, 14, 15, 16],
+        'Latitude': [-32.040650, -32.010274, -32.090316, -32.000879, -31.900399, -31.899364],
+        'Longitude': [115.905166, 115.886444, 115.870573, 115.920247, 115.799830, 115.801288]
+    }
+
     df = pd.DataFrame(newdata)
     df['ID'] = df['ID'].astype(int)
     return df
     # check later https://saturncloud.io/blog/how-to-convert-nested-json-to-pandas-dataframe-with-specific-format/
 
-"""dataset = {
-  'ID': [11, 12, 13, 14, 15, 16],
-  'Customer': ["Woolworths Riverton", "Coles Karawara", "Spud Shed Jandakot", "Spud Shed Bentley", "Woolworths Innaloo", "Spud Shed Innaloo"]
-}"""
-
-newdata = {
-    'ID': [11, 12, 13, 14, 15, 16],
-    'Latitude': [-32.040650, -32.010274, -32.090316, -32.000879, -31.900399, -31.899364],
-    'Longitude': [115.905166, 115.886444, 115.870573, 115.920247, 115.799830, 115.801288]
-}
-
-"""runsheet = pd.DataFrame(dataset)
-
-k = 3
-"""
 #TODO: Make this a function
 #TODO: Correct terminology. A runsheet exists for each truck
 if __name__=="__main__": 
