@@ -60,3 +60,8 @@ def __get_cartesian(lat=None,lon=None):
     y = R * np.cos(lat) * np.sin(lon)
     z = R *np.sin(lat)
     return np.array((x,y,z))
+
+def runsheet_to_cartesianV2(runsheet):
+    geo_array = new_geographic_array(runsheet)
+    cartesian_array = geographic_to_cartesian(geo_array)
+    return cartesian_array

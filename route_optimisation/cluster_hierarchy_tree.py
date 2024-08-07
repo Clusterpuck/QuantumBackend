@@ -50,14 +50,14 @@ class TreeNode:
         print(node.id)
         result.append(node.id)
 
-    def post_order_dfs2(self, distance_matrix, route_solver): #Feed in a DistanceMatrix, RouteSolver
-        self._post_order_dfs_helper2(self, distance_matrix, route_solver)
+    def post_order_dfs2(self, distance_matrix, route_solver, runsheet_dictionary): #Feed in a DistanceMatrix, RouteSolver
+        self._post_order_dfs_helper2(self, distance_matrix, route_solver, runsheet_dictionary)
 
-    def _post_order_dfs_helper2(self, node, distance_matrix, route_solver):
+    def _post_order_dfs_helper2(self, node, distance_matrix, route_solver, runsheet_dictionary):
         for child in node.children:
-            self._post_order_dfs_helper2(child, distance_matrix, route_solver)
+            self._post_order_dfs_helper2(child, distance_matrix, route_solver, runsheet_dictionary)
         if node.get_id() != "root":
-            node.solve_node(distance_matrix, route_solver)
+            node.solve_node(distance_matrix, route_solver, runsheet_dictionary)
 
     def __repr__(self, level=0):
         ret = "\t" * level + repr(self.id) + ": " + repr(self.customers) + repr(self.route) + "\n"
@@ -83,10 +83,10 @@ class TreeNode:
     #def solve_tree(self):
     #    brute_force_solve(self)
 
-    def solve_node(self, distance_matrix: DistanceMatrix, route_solver: RouteSolver):
+    def solve_node(self, distance_matrix: DistanceMatrix, route_solver: RouteSolver, runsheet_dictionary):
         if self.children == []:
             print(self)
-            x = distance_matrix.build_leaf_matrix(self)
+            x = distance_matrix.build_leaf_matrix(self, runsheet_dictionary)
             print("x", x)
             print("DONE")
             y = route_solver.solve(x)
@@ -102,7 +102,7 @@ class TreeNode:
             #Solve Leaf
         else:
             print("Parent")
-            x = distance_matrix.build_parent_matrix(self)
+            x = distance_matrix.build_parent_matrix(self, runsheet_dictionary)
             y = route_solver.solve(x) # Works
             print("y", y[0])
             customers = self.get_customers() #NOTE: This is the problem. Parents do not have proper routes yet. Make function to resolve.

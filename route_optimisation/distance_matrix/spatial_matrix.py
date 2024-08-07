@@ -1,6 +1,6 @@
 from distance_matrix.distance_matrix import DistanceMatrix
 from cluster_hierarchy_tree import TreeNode
-from geographic_processing import geographic_array, geographic_to_cartesian
+from geographic_processing import new_geographic_array, geographic_to_cartesian
 
 import numpy as np
 import os
@@ -9,7 +9,7 @@ from math import sqrt
 
 class SpatialMatrix(DistanceMatrix):
 
-    def build_parent_matrix(self, node: TreeNode):
+    def build_parent_matrix(self, node: TreeNode, runsheet_dictionary):
         # Implement matrix creation
         # query children for starts and ends
         nodes = node.get_children()
@@ -25,11 +25,44 @@ class SpatialMatrix(DistanceMatrix):
         matrix = np.zeros((n, n), dtype=float)
 
         connection_string = os.getenv('QuantumTestString')
-        df1 = pd.DataFrame(start_points)
-        df2 = pd.DataFrame(end_points)
-        geo_array1 = geographic_array(df1,connection_string)        # np.array: [[Latitude,Longitude]]
+        #df1 = pd.DataFrame(start_points)
+        #df2 = pd.DataFrame(end_points)
+
+        mydataset = {
+            'ID': [],
+            'Latitude': [],
+            'Longitude': []
+        }
+
+        for x in start_points:
+            key = x
+            value = runsheet_dictionary.get(key)
+            print("Skv", key, value)
+            mydataset['ID'].append(key)
+            mydataset['Latitude'].append(value[0])
+            mydataset['Longitude'].append(value[1])
+        df1 = pd.DataFrame(mydataset)
+
+        mydataset = {
+            'ID': [],
+            'Latitude': [],
+            'Longitude': []
+        }
+
+        for x in end_points:
+            key = x
+            value = runsheet_dictionary.get(key)
+            print("Ekv", key, value)
+            mydataset['ID'].append(key)
+            mydataset['Latitude'].append(value[0])
+            mydataset['Longitude'].append(value[1])
+        df2 = pd.DataFrame(mydataset)
+
+        print(start_points)
+        print(end_points)
+        geo_array1 = new_geographic_array(df1)        # np.array: [[Latitude,Longitude]]
         cartesian_array1 = geographic_to_cartesian(geo_array1)
-        geo_array2 = geographic_array(df2,connection_string)        # np.array: [[Latitude,Longitude]]
+        geo_array2 = new_geographic_array(df2)        # np.array: [[Latitude,Longitude]]
         cartesian_array2 = geographic_to_cartesian(geo_array2)
         
         # loop over coords to build matrix
@@ -52,15 +85,29 @@ class SpatialMatrix(DistanceMatrix):
         # return matrix
 
     #TODO: Fix this mess, looks terrible
-    def build_leaf_matrix(self, node):
+    def build_leaf_matrix(self, node: TreeNode, runsheet_dictionary):
         # Implement matrix creation
         customers = node.get_customers()
         n = len(customers)
         matrix = np.zeros((n, n), dtype=float) # Create n x n zero-filled array
 
-        connection_string = os.getenv('QuantumTestString')
+        mydataset = {
+            'ID': [],
+            'Latitude': [],
+            'Longitude': []
+        }
+        
+        for x in node.get_customers():
+            key = x
+            value = runsheet_dictionary.get(key)
+            print("kv", key, value)
+            mydataset['ID'].append(key)
+            mydataset['Latitude'].append(value[0])
+            mydataset['Longitude'].append(value[1])
+        subsheet = pd.DataFrame(mydataset)
+        
         df = pd.DataFrame(customers)
-        geo_array = geographic_array(df,connection_string)        # np.array: [[Latitude,Longitude]]
+        geo_array = new_geographic_array(subsheet)        # np.array: [[Latitude,Longitude]]
         cartesian_array = geographic_to_cartesian(geo_array)      # np.array: [[x,y,z]]
 
         # loop over coords to build matrix

@@ -2,7 +2,8 @@ import numpy as np
 import pyodbc
 import os
 from sklearn.cluster import KMeans
-from customer_allocation.customer_allocation import runsheet_to_cartesian, get_customer_allocation2, runsheet_to_cartesianV2
+from geographic_processing import runsheet_to_cartesianV2
+from customer_allocation.customer_allocation import get_customer_allocation2
 from cluster_hierarchy_tree import *
 import pandas as pd
 
