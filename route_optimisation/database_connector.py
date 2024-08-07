@@ -1,6 +1,6 @@
 import pyodbc
 
-#NOTE Entire file no needed, delete later
+#NOTE Entire file not needed, delete later
 class DatabaseConnector:
     def __init__(self, connection_string):
         self.connection_string = connection_string

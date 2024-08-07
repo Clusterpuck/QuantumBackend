@@ -10,7 +10,6 @@ import pandas as pd
 def partition_routes(allocation_array, split_threshold, runsheet_dictionary):
     # Check validity of params
     new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
-    #print("PRE cluster", np.unique(allocation_array))
     for cluster in np.unique(allocation_array):
         points = np.where(allocation_array == cluster)[0]
         #print("Points",points)

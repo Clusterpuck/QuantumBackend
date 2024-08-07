@@ -132,10 +132,3 @@ class TreeNode:
             print("                     DID A THING")
             #Solve Parent
 
-        # The post-order stuff
-        # on "result.append(node.id)", call solve
-        # solve needs to:
-            # Get distance matrix (Leaf is diff from parents)
-            # Find shortest path
-            # chuck in that optimal path in the node's route
-            # chuck in that corresponding cost

@@ -16,7 +16,6 @@ class BruteForceSolver(RouteSolver):
             if current_cost < lowest_cost:
                 lowest_cost = current_cost
                 best_route = route
-        #print("BR", best_route)
         return best_route, current_cost
 
     def __get_route_cost(self, route, distance_matrix):
