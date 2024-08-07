@@ -1,4 +1,3 @@
-from cluster_tree_solver import solve_tree, brute_force_solve
 from distance_matrix.distance_matrix import DistanceMatrix
 from route_solver.route_solver import RouteSolver
 import numpy as np
@@ -133,10 +132,3 @@ class TreeNode:
             print("                     DID A THING")
             #Solve Parent
 
-        # The post-order stuff
-        # on "result.append(node.id)", call solve
-        # solve needs to:
-            # Get distance matrix (Leaf is diff from parents)
-            # Find shortest path
-            # chuck in that optimal path in the node's route
-            # chuck in that corresponding cost

@@ -11,23 +11,15 @@ class SpatialMatrix(DistanceMatrix):
 
     def build_parent_matrix(self, node: TreeNode):
         # Implement matrix creation
-        print("Building SpatialMatrix for parent")
-        print("Building SpatialMatrix for parent", node.get_id())
         # query children for starts and ends
         nodes = node.get_children()
         start_points = []
         end_points = []
         internal_costs = []
         for x in nodes:
-            print("LOOPING", x)
-            print("START", x.get_route()[0])
-            print("END", x.get_route()[-1])
             start_points.append(x.get_route()[0])
             end_points.append(x.get_route()[-1])
             internal_costs.append(x.get_cost())
-        print("start_points", start_points)
-        print("end_points", end_points)
-        print("internal_costs", internal_costs)
 
         n = len(start_points)
         matrix = np.zeros((n, n), dtype=float)
@@ -48,7 +40,6 @@ class SpatialMatrix(DistanceMatrix):
                 else:
                     matrix[i][j] = self.__get_3D_distance(cartesian_array2[i], cartesian_array1[j])
                 print(matrix, end_points[i], start_points[j])
-        print("Returned: ", matrix)
         return matrix
             
         # query for lat, long for start and end. store as [x_start, x_end, y_start, y_end, ...]? or Seperate? works either way
@@ -63,15 +54,10 @@ class SpatialMatrix(DistanceMatrix):
     #TODO: Fix this mess, looks terrible
     def build_leaf_matrix(self, node):
         # Implement matrix creation
-        print("Building SpatialMatrix for leaf")
-        print("Building SpatialMatrix for leaf", node.get_id())
         customers = node.get_customers()
         n = len(customers)
         matrix = np.zeros((n, n), dtype=float) # Create n x n zero-filled array
 
-        # Query for lat, long for each point
-            # Geographic processing, geographic array
-            # geographic_to_cartesian
         connection_string = os.getenv('QuantumTestString')
         df = pd.DataFrame(customers)
         geo_array = geographic_array(df,connection_string)        # np.array: [[Latitude,Longitude]]
