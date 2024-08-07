@@ -1,36 +1,38 @@
-from customer_allocation.customer_allocation import get_customer_allocationV2, create_dictionaryV2
-from route_partitioning import *
-from distance_matrix.distance_matrix_context import DistanceMatrixContext
 import pandas as pd
+
+from customer_allocation.customer_assignment import get_customer_allocation, create_dictionary
+from route_partitioning import partition_routesV3
+from distance_matrix.distance_matrix_context import DistanceMatrixContext
 
 from distance_matrix.spatial_matrix import SpatialMatrix
 from route_solver.route_solver_context import RouteSolverContext
 from route_solver.brute_force_solver import BruteForceSolver
 
 def new_main():
-    runsheet = JSON_to_pandas()
+    delivery_list = JSON_to_pandas()
     k = 3
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
 
-    allocation_array = get_customer_allocationV2(runsheet, k)
-    runsheet_dictionary = create_dictionaryV2(runsheet)
-    tree = partition_routesV3(allocation_array, 2, runsheet_dictionary, dm, rs)
+    allocation_array = get_customer_allocation(delivery_list, k)
+    if(allocation_array is None):
+        print("Error")
+    else:
+        runsheet_dictionary = create_dictionary(delivery_list)
+        tree = partition_routesV3(allocation_array, 1, runsheet_dictionary, dm, rs)
 
-    #tree.post_order_dfs2(dm, rs, runsheet_dictionary)
-    print(tree)
-    print(allocation_array)
+        print(tree)
+        print(allocation_array)
 
 
 def JSON_to_pandas():
-    newdata = {
+    dummy = {
         'ID': [11, 12, 13, 14, 15, 16],
         'Latitude': [-32.040650, -32.010274, -32.090316, -32.000879, -31.900399, -31.899364],
         'Longitude': [115.905166, 115.886444, 115.870573, 115.920247, 115.799830, 115.801288]
     }
 
-    df = pd.DataFrame(newdata)
-    df['ID'] = df['ID'].astype(int)
+    df = pd.DataFrame(dummy)
     return df
     # check later https://saturncloud.io/blog/how-to-convert-nested-json-to-pandas-dataframe-with-specific-format/
 

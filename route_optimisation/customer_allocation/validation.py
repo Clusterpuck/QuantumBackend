@@ -1,13 +1,8 @@
 """Validation for customer_allocation.py for the runsheet and k value"""
 
 import pandas as pd
-import pyodbc
-import database_connector as dc
-import os
 
-#TODO: Review validation checks
-
-def validate_inputs(runsheet, k, connection_string):
+def validate_inputs(runsheet, k):
     """Primary method that verifies runsheet and k value
 
     :param pd.DataFrame runsheet: A runsheet containing IDs and customers
@@ -15,9 +10,10 @@ def validate_inputs(runsheet, k, connection_string):
     :param str connection_string: for the database
     """
     __validate_runsheet_format(runsheet)
-    __validate_runsheet_entries(runsheet, connection_string)
+    __validate_runsheet_entries(runsheet)
     total_customers = runsheet.shape[0] # total_customer = no. of rows
     __validate_k(k,total_customers)
+    return True
 
 def __validate_runsheet_format(runsheet):
     """Verify the runsheet is in the correct format.
@@ -34,44 +30,38 @@ def __validate_runsheet_format(runsheet):
     if not runsheet.shape[0] > 0:
         raise ValueError(f'runsheet must contain atleast one customer. '
                          f'Runsheet has {runsheet.shape[0]} rows')
-    if runsheet.shape[1] != 2:
-        raise ValueError(f'runsheet must contain exactly two columns. '
+    if runsheet.shape[1] != 3:
+        raise ValueError(f'runsheet must contain exactly three columns. '
                          f'Runsheet has {runsheet.shape[1]} columns')
 
 #TODO Validate that the customer corresponds to ID
-def __validate_runsheet_entries(runsheet, connection_string):
+#TODO REDO
+def __validate_runsheet_entries(runsheet):
     """Verify the runsheet has correct values.
-    runsheet cannot contain null values, have correct labels, unique IDs,
-    unique customers and each entry exists in database.
+    runsheet cannot contain null values, have correct labels, unique IDs and
+    unique customers.
 
     :param pd.DataFrame runsheet: A runsheet containing IDs and customers
     :param str connection_string: for the database
 
     :raises TypeError: If runsheet contains null, incorrect labels, non-unique IDs or customers
-    :raises pyodbc.DatabaseError: If row doesn't exist in database
     """
     if runsheet.isnull().values.any():
         raise ValueError('runsheet cannot have null values.')
     labels = runsheet.columns.values
-    if not (labels[0] == "ID" and labels[1] == "Customer"):
-        raise ValueError(f'Runsheet titles must be "ID" and "Customer". '
-                         f'Currently "{labels[0]}" and "{labels[1]}"')
+    if not (labels[0] == "ID" and labels[1] == "Latitude" and labels[2] == "Longitude"):
+        raise ValueError(f'Runsheet titles must be "ID", "Latitude" and "Longitude".'
+                         f'Currently "{labels[0]}", "{labels[1]}" and "{labels[2]}"')
     if not runsheet['ID'].is_unique:
         raise ValueError('runsheet contains non-unique IDs. ')
-    if not runsheet['Customer'].is_unique:
-        raise ValueError('runsheet contains non-unique Customers. ')
-    conn = dc.DatabaseConnector(connection_string)
-    for row in runsheet.itertuples(index=False): # This should be a seperate function, not technically validation
-        cursor = conn.create_cursor()
-        string = f'SELECT Top 1 customerName from Customer WHERE ID={row[0]}' # Select exactly one matching row
-        cursor.execute(string)
-        x = cursor.fetchone()
-        if x is None:
-            raise pyodbc.DatabaseError(f'Entry does not exist. {row}')
-        else:
-            if row[1] != x[0]:
-                raise ValueError(f'Entry exists but does not match runsheet. {row[1]} and {x[0]}') #TODO Update function string
-        conn.close_cursor(cursor)
+    if runsheet['Latitude'].min() < -90 or runsheet['Latitude'].max() > 90:
+        raise ValueError(f'runsheet contains invalid latitudes.'
+                         f'Lowest entry is {runsheet['Latitude'].min()}'
+                         f'Highest entry is {runsheet['Latitude'].max()}')
+    if runsheet['Longitude'].min() < -180 or runsheet['Longitude'].max() > 180:
+        raise ValueError(f'runsheet contains invalid Longitude.'
+                         f'Lowest entry is {runsheet['Longitude'].min()}'
+                         f'Highest entry is {runsheet['Longitude'].max()}')
 
 def __validate_k(k, total_customers):
     """Verify that k is a valid value

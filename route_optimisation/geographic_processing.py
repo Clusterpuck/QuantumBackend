@@ -14,15 +14,15 @@ def geographic_to_cartesian(geo_array):
         cartesian_array[index] = cartesian_coord
     return cartesian_array
 
-def __get_cartesian(lat=None,lon=None):
+def __get_cartesian(lat,lon):
     lat, lon = np.deg2rad(lat), np.deg2rad(lon)
-    R = 6371 # radius of the earth
-    x = R * np.cos(lat) * np.cos(lon)
-    y = R * np.cos(lat) * np.sin(lon)
-    z = R *np.sin(lat)
+    r = 6371 # radius of the earth
+    x = r * np.cos(lat) * np.cos(lon)
+    y = r * np.cos(lat) * np.sin(lon)
+    z = r * np.sin(lat)
     return np.array((x,y,z))
 
-def runsheet_to_cartesianV2(runsheet):
+def runsheet_to_cartesian(runsheet):
     geo_array = new_geographic_array(runsheet)
     cartesian_array = geographic_to_cartesian(geo_array)
     return cartesian_array
