@@ -12,12 +12,9 @@ def partition_routesV2(allocation_array, split_threshold, runsheet_dictionary):
     copy = allocation_array.copy()
     new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
     new_array = recursion3V2(copy, runsheet_dictionary, 0, new_array, split_threshold, None, None, tree) # Pass in the tree
-    print(copy)
     return tree
 
 def recursion3V2(allocation_array, runsheet_dictionary, cluster_number, new_array, split_threshold, processed_clusters=None, other_clusters=None, cluster_tree=None):
-    #if cluster_number is None:
-    print("recursion3 called")
     if processed_clusters is None:
         processed_clusters = set()
 
@@ -26,7 +23,6 @@ def recursion3V2(allocation_array, runsheet_dictionary, cluster_number, new_arra
     else:
         thing = other_clusters.copy()
 
-    #for cluster in np.unique(allocation_array):
     for cluster in np.unique(thing):
 
         if cluster in processed_clusters:
@@ -35,26 +31,17 @@ def recursion3V2(allocation_array, runsheet_dictionary, cluster_number, new_arra
         points = np.where(allocation_array == cluster)[0]
         if points.size > split_threshold:
             comparison = allocation_array.copy()
-            #print("xxxxxx", allocation_array)
-            #TODO: Subsheet is affected here
             temp_array = get_subsheetV2(allocation_array, runsheet_dictionary, cluster)
             y = find_added_values(comparison, temp_array)
-            print(y)
-            #print("xxxxxx", temp_array)
 
             cluster_number += 1
-            print("----------------ENTER", cluster_number, cluster)
             # If you entering this, then you are trying to split. Create a parent node here, pass parent in
-            print("Create Parent node", cluster_number, cluster)
             parent = TreeNode(cluster)
             cluster_tree.add_child(parent)
-            print(temp_array, cluster_number, cluster)
             new_array = recursion3V2(temp_array, runsheet_dictionary, cluster_number, temp_array, split_threshold, processed_clusters, y, parent)
-            print("----------------EXIT", cluster_number, cluster)
         else:
             processed_clusters.add(cluster)
             if points.size > 0:
-                print("Create Leaf", cluster, points)
                 leaf = TreeNode(cluster)
                 for point in points:
                     key = list(runsheet_dictionary.keys())[point]
@@ -64,13 +51,6 @@ def recursion3V2(allocation_array, runsheet_dictionary, cluster_number, new_arra
 
 # TODO: This is what needs to be changed
 def get_subsheetV2(allocation_array, runsheet_dictionary, cluster):
-    
-    #print("subcluster",cluster)
-    #print("suballoc",allocation_array)
-
-    #TODO: Why is this even here?
-    if np.where(allocation_array == cluster)[0].size == 1:
-        print()
 
     mydataset = {
         'ID': [],
@@ -87,7 +67,6 @@ def get_subsheetV2(allocation_array, runsheet_dictionary, cluster):
         mydataset['Latitude'].append(value[0])
         mydataset['Longitude'].append(value[1])
     subsheet = pd.DataFrame(mydataset)
-    print("SUBSHEET: ", subsheet)
 
     cartestian_array = runsheet_to_cartesianV2(subsheet)
     if cartestian_array.size != 3:

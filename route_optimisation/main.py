@@ -8,14 +8,11 @@ from route_solver.route_solver_context import RouteSolverContext
 from route_solver.brute_force_solver import BruteForceSolver
 
 def new_main():
-    print("new_main")
     runsheet = JSON_to_pandas()
     k = 3
-    allocation_array = get_customer_allocationV2(runsheet, k) # Works
-    runsheet_dictionary = create_dictionaryV2(runsheet) # Works
-    print(runsheet_dictionary) # Works
-    tree = None
-    tree = partition_routesV2(allocation_array, 1, runsheet_dictionary) # Works
+    allocation_array = get_customer_allocationV2(runsheet, k)
+    runsheet_dictionary = create_dictionaryV2(runsheet)
+    tree = partition_routesV2(allocation_array, 1, runsheet_dictionary)
 
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
@@ -49,21 +46,4 @@ k = 3
 #TODO: Make this a function
 #TODO: Correct terminology. A runsheet exists for each truck
 if __name__=="__main__": 
-    """
-    allocation_array = get_customer_allocation(runsheet, k)
-    runsheet_dictionary = create_dictionary(runsheet)
-    print(allocation_array)
-    tree = None
-    tree = partition_routes2(allocation_array, 1, runsheet_dictionary)
-    print(allocation_array)
-    print(tree)
-    connection_string = os.getenv('QuantumTestString')
-
-    dm = DistanceMatrixContext(SpatialMatrix())
-    rs = RouteSolverContext(BruteForceSolver())
-    tree.post_order_dfs2(dm, rs)
-    print(tree)
-    print(type(runsheet))
-    print(type(runsheet_dictionary))
-    """
     new_main()

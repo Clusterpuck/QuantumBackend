@@ -3,7 +3,6 @@ from cluster_hierarchy_tree import TreeNode
 from geographic_processing import new_geographic_array, geographic_to_cartesian
 
 import numpy as np
-import os
 import pandas as pd
 from math import sqrt
 
@@ -11,8 +10,6 @@ class SpatialMatrix(DistanceMatrix):
 
     #TODO Fix this mess
     def build_parent_matrix(self, node: TreeNode, runsheet_dictionary):
-        # Implement matrix creation
-        # query children for starts and ends
         nodes = node.get_children()
         start_points = []
         end_points = []
@@ -25,10 +22,6 @@ class SpatialMatrix(DistanceMatrix):
         n = len(start_points)
         matrix = np.zeros((n, n), dtype=float)
 
-        connection_string = os.getenv('QuantumTestString')
-        #df1 = pd.DataFrame(start_points)
-        #df2 = pd.DataFrame(end_points)
-
         mydataset = {
             'ID': [],
             'Latitude': [],
@@ -38,7 +31,6 @@ class SpatialMatrix(DistanceMatrix):
         for x in start_points:
             key = x
             value = runsheet_dictionary.get(key)
-            print("Skv", key, value)
             mydataset['ID'].append(key)
             mydataset['Latitude'].append(value[0])
             mydataset['Longitude'].append(value[1])
@@ -53,14 +45,11 @@ class SpatialMatrix(DistanceMatrix):
         for x in end_points:
             key = x
             value = runsheet_dictionary.get(key)
-            print("Ekv", key, value)
             mydataset['ID'].append(key)
             mydataset['Latitude'].append(value[0])
             mydataset['Longitude'].append(value[1])
         df2 = pd.DataFrame(mydataset)
 
-        print(start_points)
-        print(end_points)
         geo_array1 = new_geographic_array(df1)        # np.array: [[Latitude,Longitude]]
         cartesian_array1 = geographic_to_cartesian(geo_array1)
         geo_array2 = new_geographic_array(df2)        # np.array: [[Latitude,Longitude]]
@@ -73,17 +62,7 @@ class SpatialMatrix(DistanceMatrix):
                     matrix[i][j] = internal_costs[i]
                 else:
                     matrix[i][j] = self.__get_3D_distance(cartesian_array2[i], cartesian_array1[j])
-                print(matrix, end_points[i], start_points[j])
         return matrix
-            
-        # query for lat, long for start and end. store as [x_start, x_end, y_start, y_end, ...]? or Seperate? works either way
-            # Geographic processing, geographic array
-            # geographic_to_cartesian
-        # loop over start coords
-            # loop over end coords
-                # Get cartesian distance (A + A_end -> B_start)
-                # If i==j, set to 0
-        # return matrix
 
     #TODO: Fix this mess, looks terrible
     def build_leaf_matrix(self, node: TreeNode, runsheet_dictionary):
@@ -101,7 +80,6 @@ class SpatialMatrix(DistanceMatrix):
         for x in node.get_customers():
             key = x
             value = runsheet_dictionary.get(key)
-            print("kv", key, value)
             mydataset['ID'].append(key)
             mydataset['Latitude'].append(value[0])
             mydataset['Longitude'].append(value[1])

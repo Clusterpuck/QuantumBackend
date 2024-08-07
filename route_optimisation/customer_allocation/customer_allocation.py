@@ -1,7 +1,7 @@
 from sklearn.cluster import KMeans
 from collections import OrderedDict
 
-from customer_allocation.validation import validate_inputs
+from customer_allocation.validation import validate_inputs # TODO: Important for later
 from geographic_processing import runsheet_to_cartesianV2
 
 # runsheet = ID, Lat, Long
@@ -20,8 +20,6 @@ def get_customer_allocationV2(runsheet, k):
         print("Input was not valid")
 
 def create_dictionaryV2(df):
-    for row in df.values:
-        print(row[0])
     return OrderedDict((int(row[0]), (row[1], row[2])) for row in df.values)
 
 # Do K-means++ on geo_array
