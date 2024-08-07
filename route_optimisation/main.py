@@ -1,6 +1,5 @@
 from customer_allocation.customer_allocation import get_customer_allocationV2, create_dictionaryV2
 from route_partitioning import *
-from geographic_processing import geographic_array
 from distance_matrix.distance_matrix_context import DistanceMatrixContext
 import pandas as pd
 
@@ -16,7 +15,7 @@ def new_main():
     runsheet_dictionary = create_dictionaryV2(runsheet) # Works
     print(runsheet_dictionary) # Works
     tree = None
-    tree = partition_routesV2(allocation_array, 2, runsheet_dictionary) # Works
+    tree = partition_routesV2(allocation_array, 1, runsheet_dictionary) # Works
 
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())

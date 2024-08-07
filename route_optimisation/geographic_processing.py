@@ -3,7 +3,7 @@ import pyodbc
 
 import database_connector as dc
 
-def geographic_array(runsheet, connection_string):
+"""def geographic_array(runsheet, connection_string):
     conn = dc.DatabaseConnector(connection_string)
 
     customer_ids = tuple(runsheet.iloc[:, 0]) # Tuple of customer IDs
@@ -33,7 +33,7 @@ def geographic_array(runsheet, connection_string):
             raise pyodbc.DatabaseError(f'Entry does not exist. {row}')
         array[counter] = customer_location
     print("THING", array, runsheet)
-    return array
+    return array"""
 
 # runsheet = ID, Lat, Long
 # We already have lat and long. All we need is to combine them into an array [lat, long]

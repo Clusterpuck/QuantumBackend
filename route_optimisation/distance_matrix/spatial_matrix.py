@@ -9,6 +9,7 @@ from math import sqrt
 
 class SpatialMatrix(DistanceMatrix):
 
+    #TODO Fix this mess
     def build_parent_matrix(self, node: TreeNode, runsheet_dictionary):
         # Implement matrix creation
         # query children for starts and ends

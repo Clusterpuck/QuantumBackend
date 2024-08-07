@@ -5,6 +5,8 @@ import pyodbc
 import database_connector as dc
 import os
 
+#TODO: Review validation checks
+
 def validate_inputs(runsheet, k, connection_string):
     """Primary method that verifies runsheet and k value
 
