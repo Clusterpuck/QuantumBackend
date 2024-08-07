@@ -16,13 +16,13 @@ def new_main():
     runsheet_dictionary = create_dictionaryV2(runsheet) # Works
     print(runsheet_dictionary) # Works
     tree = None
-    tree = partition_routesV2(allocation_array, 1, runsheet_dictionary) # Works
+    tree = partition_routesV2(allocation_array, 2, runsheet_dictionary) # Works
 
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
     tree.post_order_dfs2(dm, rs)
     print(tree)
-    print(runsheet_dictionary)
+    print(allocation_array)
 
 
 def JSON_to_pandas():
@@ -32,10 +32,10 @@ def JSON_to_pandas():
     return df
     # check later https://saturncloud.io/blog/how-to-convert-nested-json-to-pandas-dataframe-with-specific-format/
 
-dataset = {
+"""dataset = {
   'ID': [11, 12, 13, 14, 15, 16],
   'Customer': ["Woolworths Riverton", "Coles Karawara", "Spud Shed Jandakot", "Spud Shed Bentley", "Woolworths Innaloo", "Spud Shed Innaloo"]
-}
+}"""
 
 newdata = {
     'ID': [11, 12, 13, 14, 15, 16],
@@ -43,12 +43,14 @@ newdata = {
     'Longitude': [115.905166, 115.886444, 115.870573, 115.920247, 115.799830, 115.801288]
 }
 
-runsheet = pd.DataFrame(dataset)
+"""runsheet = pd.DataFrame(dataset)
 
 k = 3
+"""
 #TODO: Make this a function
 #TODO: Correct terminology. A runsheet exists for each truck
 if __name__=="__main__": 
+    """
     allocation_array = get_customer_allocation(runsheet, k)
     runsheet_dictionary = create_dictionary(runsheet)
     print(allocation_array)
@@ -64,5 +66,5 @@ if __name__=="__main__":
     print(tree)
     print(type(runsheet))
     print(type(runsheet_dictionary))
-
+    """
     new_main()
