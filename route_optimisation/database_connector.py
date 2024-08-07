@@ -1,4 +1,6 @@
-import pyodbc
+
+
+"""import pyodbc
 
 #NOTE Entire file not needed, delete later
 class DatabaseConnector:
@@ -31,3 +33,5 @@ class DatabaseConnector:
             self.close_all_cursors()
         if hasattr(self, 'connection'):
             self.connection.close()
+
+"""
