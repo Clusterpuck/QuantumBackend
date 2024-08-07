@@ -30,6 +30,7 @@ def partition_routes2(allocation_array, split_threshold, runsheet_dictionary):
     #DECLARE ROOT
     tree = TreeNode("root")
     print("Create Tree")
+    print(allocation_array)
     copy = allocation_array.copy()
     new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
     new_array = recursion3(copy, runsheet_dictionary, 0, new_array, split_threshold, None, None, tree) # Pass in the tree

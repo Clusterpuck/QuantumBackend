@@ -3,9 +3,6 @@ import pyodbc
 
 import database_connector as dc
 
-# Get geographic array
-# Assumed valid, will have to query Db for lat, long (index,[lat, long])
-# ProgrammingError for query
 def geographic_array(runsheet, connection_string):
     conn = dc.DatabaseConnector(connection_string)
 
@@ -35,8 +32,16 @@ def geographic_array(runsheet, connection_string):
         if customer_location is None:
             raise pyodbc.DatabaseError(f'Entry does not exist. {row}')
         array[counter] = customer_location
-    #print("THING", array, runsheet)
+    print("THING", array, runsheet)
     return array
+
+# runsheet = ID, Lat, Long
+# We already have lat and long. All we need is to combine them into an array [lat, long]
+# output: Numpy Array
+#NOTE: DONE
+def new_geographic_array(runsheet):
+    lat_long_array = runsheet[['Latitude', 'Longitude']].to_numpy()
+    return lat_long_array
 
 
 # Convert geographic to cartesian
