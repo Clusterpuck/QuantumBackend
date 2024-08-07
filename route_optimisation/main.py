@@ -1,4 +1,4 @@
-from customer_allocation.customer_allocation import get_customer_allocation, create_dictionary, get_customer_allocationV2
+from customer_allocation.customer_allocation import get_customer_allocation, create_dictionary, get_customer_allocationV2, create_dictionaryV2
 from route_partitioning import *
 from geographic_processing import geographic_array
 from distance_matrix.distance_matrix_context import DistanceMatrixContext
@@ -12,7 +12,12 @@ def new_main():
     print("new_main")
     runsheet = JSON_to_pandas()
     k = 3
-    allocation_array = get_customer_allocationV2(runsheet, k)
+    allocation_array = get_customer_allocationV2(runsheet, k) # Works
+    runsheet_dictionary = create_dictionaryV2(runsheet) # Works
+    print(runsheet_dictionary) # Works
+    tree = None
+    tree = partition_routesV2(allocation_array, 1, runsheet_dictionary) # Works
+
 
 def JSON_to_pandas():
     print("Grab JSON object and turn it into a dataframe")

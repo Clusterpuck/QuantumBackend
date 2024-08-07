@@ -24,6 +24,7 @@ def get_customer_allocation(runsheet, k):
         print("Input was not valid")
 
 # runsheet = ID, Lat, Long
+# TODO: Fix the return, might return None
 def get_customer_allocationV2(runsheet, k):
     valid = False
     try:
@@ -54,6 +55,11 @@ def runsheet_to_cartesianV2(runsheet):
 def create_dictionary(dataframe):
     #return {row[0]: row[1] for row in dataframe.values} #OLD CODE WORKS, UNORDERED DICTIONARY
     return OrderedDict((row[0], row[1]) for row in dataframe.values)
+
+def create_dictionaryV2(df):
+    for row in df.values:
+        print(row[0])
+    return OrderedDict((row[0], (row[1], row[2])) for row in df.values)
 
 # Do K-means++ on geo_array
 # Output: [Index,assignment]
