@@ -18,11 +18,18 @@ def new_main():
     tree = None
     tree = partition_routesV2(allocation_array, 1, runsheet_dictionary) # Works
 
+    dm = DistanceMatrixContext(SpatialMatrix())
+    rs = RouteSolverContext(BruteForceSolver())
+    tree.post_order_dfs2(dm, rs)
+    print(tree)
+    print(runsheet_dictionary)
+
 
 def JSON_to_pandas():
     print("Grab JSON object and turn it into a dataframe")
-    runsheet = pd.DataFrame(newdata)
-    return runsheet
+    df = pd.DataFrame(newdata)
+    df['ID'] = df['ID'].astype(int)
+    return df
     # check later https://saturncloud.io/blog/how-to-convert-nested-json-to-pandas-dataframe-with-specific-format/
 
 dataset = {

@@ -59,7 +59,7 @@ def create_dictionary(dataframe):
 def create_dictionaryV2(df):
     for row in df.values:
         print(row[0])
-    return OrderedDict((row[0], (row[1], row[2])) for row in df.values)
+    return OrderedDict((int(row[0]), (row[1], row[2])) for row in df.values)
 
 # Do K-means++ on geo_array
 # Output: [Index,assignment]
