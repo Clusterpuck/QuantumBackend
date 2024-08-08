@@ -8,7 +8,7 @@ from .validation import validate_inputs
 
 def get_customer_allocation(delivery_list, k):
     """
-    Create a dictionary of Customer IDs and their latitude and longitude.
+    Validate the parameters and cluster points based on geographic location
 
     Parameters
     ----------
@@ -22,15 +22,8 @@ def get_customer_allocation(delivery_list, k):
     customer_assignment: numpy.ndarray
         List of point allocations
         [0, 1, 0] means cluster 0 has point 0 and point 2, cluster 1 has point 1
-
-    Raises
-    ------
-    ValueError
-        If `x` or `y` are negative.
-    
+        Index of allocation and delivery_list represent the same customer
     """
-    #TODO So many cases... have fun
-    print(type(delivery_list))
     try:
         validate_inputs(delivery_list,k)
         cartesian_array = runsheet_to_cartesian(delivery_list)

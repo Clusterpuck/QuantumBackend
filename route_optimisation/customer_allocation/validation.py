@@ -2,78 +2,113 @@
 
 import pandas as pd
 
-#TODO Comments need to be changed to numpy format
-def validate_inputs(runsheet, k):
-    """Primary method that verifies runsheet and k value
+def validate_inputs(delivery_list, k):
+    """
+    Primary method that verifies runsheet and k value. Invalid parameters raise an exception
 
-    :param pd.DataFrame runsheet: A runsheet containing IDs and customers
-    :param int k: The person sending the message
-    :param str connection_string: for the database
+    Parameters
+    ----------
+    runsheet: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+    k: int
+        Number of routes to be made
+
+    Raises
+    ------
+    IOError
+        If runsheet is not a Pandas dataframe
+        If runsheet does not contain atleast 1 row or exactly 3 columns
+        If runsheet contains null, incorrect labels, non-unique IDs or customers
+        or invalid latitude, longitude values
+        If k is not an int
+        If k is not between (and including) 1 and total_customers
     """
     try:
-        __validate_runsheet_format(runsheet)
-        __validate_runsheet_entries(runsheet)
-        total_customers = runsheet.shape[0] # total_customer = no. of rows
+        __validate_format(delivery_list)
+        __validate_entries(delivery_list)
+        total_customers = delivery_list.shape[0] # total_customer = no. of rows
         __validate_k(k,total_customers)
     except (TypeError, ValueError) as ex:
         raise IOError(ex) from ex
-    return True
 
-def __validate_runsheet_format(runsheet):
-    """Verify the runsheet is in the correct format.
-    The format must be a Pandas DataFrame with atleast 1 row and exactly 2 columns.
-
-    :param pd.DataFrame runsheet: A runsheet containing IDs and customers
-
-    :raises TypeError: If runsheet is not a Pandas dataframe
-    :raises ValueError: If runsheet does not contain atleast 1 row or exactly 2 columns
+def __validate_format(delivery_list):
     """
-    if not isinstance(runsheet, pd.DataFrame):
-        raise TypeError(f'runsheet must be in a dataframe. '
-                        f'Runsheet = {type(runsheet)}')
-    if not runsheet.shape[0] > 0:
-        raise ValueError(f'runsheet must contain atleast one customer. '
-                         f'Runsheet has {runsheet.shape[0]} rows')
-    if runsheet.shape[1] != 3:
-        raise ValueError(f'runsheet must contain exactly three columns. '
-                         f'Runsheet has {runsheet.shape[1]} columns')
+    Verify the runsheet is in the correct format.
+    The format must be a Pandas DataFrame with atleast 1 row and exactly 3 columns.
 
-def __validate_runsheet_entries(runsheet):
-    """Verify the runsheet has correct values.
+    Parameters
+    ----------
+    delivery_list: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+    
+    Raises
+    ------
+    TypeError
+        If runsheet is not a Pandas dataframe
+    ValueError
+        If runsheet does not contain atleast 1 row or exactly 3 columns
+    """
+    if not isinstance(delivery_list, pd.DataFrame):
+        raise TypeError(f'runsheet must be in a dataframe. '
+                        f'Runsheet = {type(delivery_list)}')
+    if not delivery_list.shape[0] > 0:
+        raise ValueError(f'runsheet must contain atleast one customer. '
+                         f'Runsheet has {delivery_list.shape[0]} rows')
+    if delivery_list.shape[1] != 3:
+        raise ValueError(f'runsheet must contain exactly three columns. '
+                         f'Runsheet has {delivery_list.shape[1]} columns')
+
+def __validate_entries(delivery_list):
+    """
+    Verify the runsheet has correct values.
     runsheet cannot contain null values, have correct labels, unique IDs,
     unique customers and valid latitude and longitude values
 
-    :param pd.DataFrame runsheet: A runsheet containing IDs and customers
-    :param str connection_string: for the database
-
-    :raises ValueError: If runsheet contains null, incorrect labels, non-unique IDs or customers
-                       or invalid latitude, longitude values
+    Parameters
+    ----------
+    delivery_list: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+    
+    Raises
+    ------
+    ValueError
+        If runsheet contains null, incorrect labels, non-unique IDs or customers
+        or invalid latitude, longitude values
     """
-    if runsheet.isnull().values.any():
-        raise ValueError('runsheet cannot have null values.')
-    labels = runsheet.columns.values
+    if delivery_list.isnull().values.any():
+        raise ValueError('Delivery list cannot have null values.')
+    labels = delivery_list.columns.values
     if not (labels[0] == "ID" and labels[1] == "Latitude" and labels[2] == "Longitude"):
-        raise ValueError(f'Runsheet titles must be "ID", "Latitude" and "Longitude".'
+        raise ValueError(f'Delivery list titles must be "ID", "Latitude" and "Longitude".'
                          f'Currently "{labels[0]}", "{labels[1]}" and "{labels[2]}"')
-    if not runsheet['ID'].is_unique:
-        raise ValueError('runsheet contains non-unique IDs. ')
-    if runsheet['Latitude'].min() < -90 or runsheet['Latitude'].max() > 90:
-        raise ValueError(f'runsheet contains invalid latitudes.'
-                         f'Lowest entry is {runsheet['Latitude'].min()}'
-                         f'Highest entry is {runsheet['Latitude'].max()}')
-    if runsheet['Longitude'].min() < -180 or runsheet['Longitude'].max() > 180:
-        raise ValueError(f'runsheet contains invalid Longitude.'
-                         f'Lowest entry is {runsheet['Longitude'].min()}'
-                         f'Highest entry is {runsheet['Longitude'].max()}')
+    if not delivery_list['ID'].is_unique:
+        raise ValueError('Delivery list contains non-unique IDs. ')
+    if delivery_list['Latitude'].min() < -90 or delivery_list['Latitude'].max() > 90:
+        raise ValueError(f'Delivery list contains invalid latitudes.'
+                         f'Lowest entry is {delivery_list['Latitude'].min()}'
+                         f'Highest entry is {delivery_list['Latitude'].max()}')
+    if delivery_list['Longitude'].min() < -180 or delivery_list['Longitude'].max() > 180:
+        raise ValueError(f'Delivery list contains invalid Longitude.'
+                         f'Lowest entry is {delivery_list['Longitude'].min()}'
+                         f'Highest entry is {delivery_list['Longitude'].max()}')
 
 def __validate_k(k, total_customers):
-    """Verify that k is a valid value
+    """
+    Verify that k is a valid value
 
-    :param int k: The person sending the message
-    :param int total_customers: The recipient of the message
-
-    :raises TypeError: If k is not an int
-    :raises ValueError: If k is not between (and including) 1 and total_customers
+    Parameters
+    ----------
+    k: int
+        Number of routes to be made
+    total_customers: int
+        Number of customers in delivery list
+    
+    Raises
+    ------
+    Typerror
+        If k is not an int
+    ValueError
+        If k is not between (and including) 1 and total_customers
     """
     if not isinstance(k, int):
         raise TypeError(f'k must be in an int. k = {type(k)}')
