@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from sklearn.cluster import KMeans
 
-from geographic_processing import runsheet_to_cartesian
+from geographic_processing import delivery_list_to_cartesian
 from .validation import validate_inputs
 
 def get_customer_allocation(delivery_list, k):
@@ -26,7 +26,7 @@ def get_customer_allocation(delivery_list, k):
     """
     try:
         validate_inputs(delivery_list,k)
-        cartesian_array = runsheet_to_cartesian(delivery_list)
+        cartesian_array = delivery_list_to_cartesian(delivery_list)
         customer_assignment = k_means(k, cartesian_array)
     except IOError as ex:
         print(f"An error occured with input validation.\n{ex}")

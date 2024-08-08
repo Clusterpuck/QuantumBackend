@@ -1,13 +1,38 @@
+"""Handles geographic processing of points"""
+
 import numpy as np
 
-def new_geographic_array(runsheet):
-    lat_long_array = runsheet[['Latitude', 'Longitude']].to_numpy()
+def geographic_array(delivery_list):
+    """
+    Grab the longitude and latitude from delivery_list
+
+    Parameters
+    ----------
+    delivery_list: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+
+    Returns
+    -------
+    lat_long_array: numpy.ndarray
+        array of arrays containing latitude and longitude
+    """
+    lat_long_array = delivery_list[['Latitude', 'Longitude']].to_numpy()
     return lat_long_array
 
-
-# Convert geographic to cartesian
-# Simple math conversion
 def geographic_to_cartesian(geo_array):
+    """
+    convert geographic locations to 3D cartesian coordinates
+
+    Parameters
+    ----------
+    geo_array: numpy.ndarray
+        Contains latitude and longitude
+
+    Returns
+    -------
+    cartesian_array: numpy.ndarray
+        Contains x,y,z coordinate on cartesian plane
+    """
     cartesian_array = np.zeros((geo_array.shape[0],3))
     for index, x in enumerate(geo_array):
         cartesian_coord = __get_cartesian(x[0],x[1])
@@ -15,6 +40,21 @@ def geographic_to_cartesian(geo_array):
     return cartesian_array
 
 def __get_cartesian(lat,lon):
+    """
+    Get cartesian coordinate for a latitude and longitude point
+
+    Parameters
+    ----------
+    lat: float
+        latitude value
+    lon: float
+        longitude value
+
+    Returns
+    -------
+    numpy.ndarray
+        Contains x,y,z coordinate on cartesian plane
+    """
     lat, lon = np.deg2rad(lat), np.deg2rad(lon)
     r = 6371 # radius of the earth
     x = r * np.cos(lat) * np.cos(lon)
@@ -22,7 +62,20 @@ def __get_cartesian(lat,lon):
     z = r * np.sin(lat)
     return np.array((x,y,z))
 
-def runsheet_to_cartesian(runsheet):
-    geo_array = new_geographic_array(runsheet)
+def delivery_list_to_cartesian(delivery_list):
+    """
+    Convert a delivery list to a cartesian array
+
+    Parameters
+    ----------
+    delivery_list: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+
+    Returns
+    -------
+    cartesian_array: numpy.ndarray
+        Contains x,y,z coordinate on cartesian plane
+    """
+    geo_array = geographic_array(delivery_list)
     cartesian_array = geographic_to_cartesian(geo_array)
     return cartesian_array

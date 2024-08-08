@@ -1,7 +1,7 @@
 import pandas as pd
 
 from customer_allocation.customer_assignment import get_customer_allocation, create_dictionary
-from route_partitioning import partition_routesV3
+from route_partitioning import partition_routes
 from distance_matrix.distance_matrix_context import DistanceMatrixContext
 
 from distance_matrix.spatial_matrix import SpatialMatrix
@@ -10,14 +10,14 @@ from route_solver.brute_force_solver import BruteForceSolver
 
 def new_main():
     delivery_list = JSON_to_pandas()
-    k = 3
+    k = 1
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
 
     allocation_array = get_customer_allocation(delivery_list, k)
     if(allocation_array is not None):
         runsheet_dictionary = create_dictionary(delivery_list)
-        tree = partition_routesV3(allocation_array, 1, runsheet_dictionary, dm, rs)
+        tree = partition_routes(allocation_array, 5, runsheet_dictionary, dm, rs)
 
         print(tree)
         print(allocation_array)

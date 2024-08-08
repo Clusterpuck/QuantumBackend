@@ -1,6 +1,6 @@
 from distance_matrix.distance_matrix import DistanceMatrix
 from tree_node import TreeNode
-from geographic_processing import new_geographic_array, geographic_to_cartesian
+from geographic_processing import geographic_array, geographic_to_cartesian
 
 import numpy as np
 import pandas as pd
@@ -50,9 +50,9 @@ class SpatialMatrix(DistanceMatrix):
             mydataset['Longitude'].append(value[1])
         df2 = pd.DataFrame(mydataset)
 
-        geo_array1 = new_geographic_array(df1)        # np.array: [[Latitude,Longitude]]
+        geo_array1 = geographic_array(df1)        # np.array: [[Latitude,Longitude]]
         cartesian_array1 = geographic_to_cartesian(geo_array1)
-        geo_array2 = new_geographic_array(df2)        # np.array: [[Latitude,Longitude]]
+        geo_array2 = geographic_array(df2)        # np.array: [[Latitude,Longitude]]
         cartesian_array2 = geographic_to_cartesian(geo_array2)
         
         # loop over coords to build matrix
@@ -61,7 +61,7 @@ class SpatialMatrix(DistanceMatrix):
                 if i == j:
                     matrix[i][j] = internal_costs[i]
                 else:
-                    matrix[i][j] = self.__get_3D_distance(cartesian_array2[i], cartesian_array1[j])
+                    matrix[i][j] = self.__get_3d_distance(cartesian_array2[i], cartesian_array1[j])
         return matrix
 
     #TODO: Fix this mess, looks terrible
@@ -86,7 +86,7 @@ class SpatialMatrix(DistanceMatrix):
         subsheet = pd.DataFrame(mydataset)
         
         df = pd.DataFrame(customers)
-        geo_array = new_geographic_array(subsheet)        # np.array: [[Latitude,Longitude]]
+        geo_array = geographic_array(subsheet)        # np.array: [[Latitude,Longitude]]
         cartesian_array = geographic_to_cartesian(geo_array)      # np.array: [[x,y,z]]
 
         # loop over coords to build matrix
@@ -95,11 +95,11 @@ class SpatialMatrix(DistanceMatrix):
                 if i == j:
                     matrix[i][j] = 0
                 else:
-                    matrix[i][j] = self.__get_3D_distance(cartesian_array[i], cartesian_array[j])
+                    matrix[i][j] = self.__get_3d_distance(cartesian_array[i], cartesian_array[j])
         return matrix
 
     #TODO: Can fully document, simple function
-    def __get_3D_distance(self, p1 : np.ndarray, p2: np.ndarray):
+    def __get_3d_distance(self, p1 : np.ndarray, p2: np.ndarray):
 
         # Differences between 2 points on each axes
         delta_x = p2[0] - p1[0]

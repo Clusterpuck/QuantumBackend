@@ -73,7 +73,7 @@ class TreeNode:
             customers = self.get_customers()
             children = self.get_children()
             Alist = np.empty(len(children), dtype=object)
-            for idx, data in enumerate(y):
+            for idx, data in enumerate(y[0]):
                 Alist[idx] = children[idx].get_route()
             Blist = []
             for i in Alist:
