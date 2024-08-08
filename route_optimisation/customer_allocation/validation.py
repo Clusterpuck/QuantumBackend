@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-def validate_inputs(delivery_list, k):
+def validate_inputs(delivery_list, k, split_threshold):
     """
     Primary method that verifies runsheet and k value. Invalid parameters raise an exception
 
@@ -12,6 +12,8 @@ def validate_inputs(delivery_list, k):
         Dataframes containing Customer IDs, latitude and longitude
     k: int
         Number of routes to be made
+    split_threshold: int
+        Number of sub-routes to be made per partition
 
     Raises
     ------
@@ -27,7 +29,7 @@ def validate_inputs(delivery_list, k):
         __validate_format(delivery_list)
         __validate_entries(delivery_list)
         total_customers = delivery_list.shape[0] # total_customer = no. of rows
-        __validate_k(k,total_customers)
+        __validate_k(k,total_customers, split_threshold)
     except (TypeError, ValueError) as ex:
         raise IOError(ex) from ex
 
@@ -92,7 +94,7 @@ def __validate_entries(delivery_list):
                          f'Lowest entry is {delivery_list['Longitude'].min()}'
                          f'Highest entry is {delivery_list['Longitude'].max()}')
 
-def __validate_k(k, total_customers):
+def __validate_k(k, total_customers,split_threshold):
     """
     Verify that k is a valid value
 
@@ -102,6 +104,8 @@ def __validate_k(k, total_customers):
         Number of routes to be made
     total_customers: int
         Number of customers in delivery list
+    split_threshold: int
+        Number of routes to be made per partition
     
     Raises
     ------
@@ -115,3 +119,6 @@ def __validate_k(k, total_customers):
     if not 1 <= k <= total_customers:
         raise ValueError(f'k must be greater than 1 and less than total customers. '
                          f'k = {k}, total_customers = {total_customers}')
+    if split_threshold <= 1:
+        raise ValueError(f'split_threshold must be greater than 1 '
+                         f'split_threshold = {k}')

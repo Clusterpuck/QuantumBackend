@@ -82,7 +82,7 @@ def partition(allocation_array, delivery_list, cluster_number, new_array, split_
         if points.size > split_threshold:
             comparison = allocation_array.copy()
             # Split the cluster down
-            temp_array = get_subsheetV2(allocation_array, delivery_list, cluster, split_threshold) #TODO What does this do
+            temp_array = cluster_node(allocation_array, delivery_list, cluster, split_threshold) #TODO What does this do
             new_clusters = find_added_values(comparison, temp_array)
 
             cluster_number += 1
@@ -110,9 +110,28 @@ def partition(allocation_array, delivery_list, cluster_number, new_array, split_
 
 
 # TODO: This is what needs to be changed
-def get_subsheetV2(allocation_array, runsheet_dictionary, cluster, split_threshold):
+def cluster_node(allocation_array, delivery_dictionary, cluster, split_threshold):
+    """
+    Cluster a node into sub nodes
 
-    sub_list = create_sub_list(allocation_array, runsheet_dictionary, cluster)
+    Parameters
+    ----------
+    allocation_array: numpy.ndarray
+        List of point allocations
+    delivery_dictionary: OrderedDict
+        key = customerID
+        value = (latitude, longitude)
+    cluster: int
+        the cluster id
+    split_threshold: int
+        k value for split
+
+    Returns
+    -------
+    temp_array: numpy.ndarray
+        new allocation of nodes after split
+    """
+    sub_list = create_sub_list(allocation_array, delivery_dictionary, cluster)
     cartestian_array = delivery_list_to_cartesian(sub_list)
 
     # If greater than one point
@@ -131,24 +150,39 @@ def get_subsheetV2(allocation_array, runsheet_dictionary, cluster, split_thresho
             output_tracker += 1
     return temparray
 
-def create_sub_list(allocation_array, runsheet_dictionary, cluster):
-    
+def create_sub_list(allocation_array, delivery_dictionary, cluster_number):
+    """
+    Recursively partition routes until every node is solved
+
+    Parameters
+    ----------
+    allocation_array: numpy.ndarray
+        List of point allocations
+    delivery_dictionary: OrderedDict
+        key = customerID
+        value = (latitude, longitude)
+    cluster_number: int
+        the cluster id
+
+    Returns
+    -------
+    sub_list: pandas.DataFrame
+        dataframe containing entries of the current
+    """
     dataset = {
         'ID': [],
         'Latitude': [],
         'Longitude': []
     }
     
-    for x in np.where(allocation_array == cluster)[0]:
-        key = list(runsheet_dictionary.keys())[x]
-        value = runsheet_dictionary.get(key)
+    for x in np.where(allocation_array == cluster_number)[0]:
+        key = list(delivery_dictionary.keys())[x]
+        value = delivery_dictionary.get(key)
         dataset['ID'].append(key)
         dataset['Latitude'].append(value[0])
         dataset['Longitude'].append(value[1])
     sub_list = pd.DataFrame(dataset)
     return sub_list
-
-
 
 def find_added_values(arr1, arr2):
     """

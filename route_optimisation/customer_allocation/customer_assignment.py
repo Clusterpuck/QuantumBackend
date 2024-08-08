@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 from geographic_processing import delivery_list_to_cartesian
 from .validation import validate_inputs
 
-def get_customer_allocation(delivery_list, k):
+def get_customer_allocation(delivery_list, k, split_threshold):
     """
     Validate the parameters and cluster points based on geographic location
 
@@ -16,6 +16,8 @@ def get_customer_allocation(delivery_list, k):
         Dataframes containing Customer IDs, latitude and longitude
     k: int
         How many routes must be created
+    k: int
+        How many sub-routes are made per split
 
     Returns
     -------
@@ -24,8 +26,9 @@ def get_customer_allocation(delivery_list, k):
         [0, 1, 0] means cluster 0 has point 0 and point 2, cluster 1 has point 1
         Index of allocation and delivery_list represent the same customer
     """
+    customer_assignment = None
     try:
-        validate_inputs(delivery_list,k)
+        validate_inputs(delivery_list,k,split_threshold)
         cartesian_array = delivery_list_to_cartesian(delivery_list)
         customer_assignment = k_means(k, cartesian_array)
     except IOError as ex:
