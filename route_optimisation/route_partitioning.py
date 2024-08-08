@@ -3,8 +3,10 @@ from geographic_processing import delivery_list_to_cartesian
 from customer_allocation.customer_assignment import k_means
 from tree_node import TreeNode
 import pandas as pd
+from collections import OrderedDict
 
-def partition_routes(allocation_array, split_threshold, delivery_list, 
+
+def partition_routes(allocation_array, split_threshold, delivery_dictionary, 
                      distance_matrix, route_solver):
     """
     Partition route into sub routes so they can be solved.
@@ -15,7 +17,7 @@ def partition_routes(allocation_array, split_threshold, delivery_list,
         List of point allocations
     split_threshold: int
         How many clusters should exist for route partitioning
-    delivery_list: pandas.DataFrame
+    delivery_dictionary: pandas.DataFrame
         Dataframes containing Customer IDs, latitude and longitude
     distance_matrix: DistanceMatrixContext
         The distance matrix building method
@@ -30,11 +32,12 @@ def partition_routes(allocation_array, split_threshold, delivery_list,
     tree = TreeNode("root")
     copy = allocation_array.copy()
     new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
-    new_array = partition(copy, delivery_list, 0, new_array, split_threshold, None, tree, distance_matrix, route_solver) # Pass in the tree
+    #new_array = partition(copy, delivery_dictionary, 0, new_array, split_threshold, None, tree, distance_matrix, route_solver) #TODO Problem here
+    new_array = partitionV2(allocation_array, delivery_dictionary, split_threshold)
     return tree
 
 def partition(allocation_array, delivery_list, cluster_number, new_array, split_threshold, 
-              new_clusters=None, cluster_tree=None, dm=None, rs=None):
+              new_clusters=None, cluster_tree: TreeNode=None, dm=None, rs=None):
     """
     Recursively partition routes until every node is solved
 
@@ -106,7 +109,21 @@ def partition(allocation_array, delivery_list, cluster_number, new_array, split_
                 leaf.solve_node(dm, rs, delivery_list)
     return new_array
 
-    
+def partitionV2(allocation_array, delivery_dictionary, split_threshold):
+    copy = allocation_array.copy()
+    print("Copy:", copy)
+
+    for cluster in np.unique(copy):
+        #print(cluster)
+        points = np.where(allocation_array == cluster)[0]
+        #print(points)
+        # I need to split
+        if points.size >= 2:
+            cluster_nodeV2(copy, delivery_dictionary, cluster, split_threshold)
+            pass
+            # I need to breakdown the nodes
+            
+
 
 
 # TODO: This is what needs to be changed
@@ -141,14 +158,52 @@ def cluster_node(allocation_array, delivery_dictionary, cluster, split_threshold
         output = [0]
 
     # for each entry in the allocation array, if it matches our current cluster, change the value to the output value
-    temparray = allocation_array.copy()
+    #temparray = allocation_array.copy()
     cluster_value = max(allocation_array) + 1
+    temparray = np.copy(allocation_array)
     output_tracker = 0
     for counter, x in enumerate(allocation_array):
         if x == cluster:
             temparray[counter] = output[output_tracker] + cluster_value
             output_tracker += 1
     return temparray
+
+def cluster_nodeV2(allocation_array, delivery_dictionary: OrderedDict, cluster, split_threshold):
+    # Your job is to do k-means again
+    # I need to check the allocation_array to get points that belong to the cluster
+    indices = np.where(allocation_array == cluster)[0]
+    print("=======S")
+    print(allocation_array)
+    print(cluster)
+    
+    print("=======E")
+
+    """for x in allocation_array:
+        for indices in [index for index, (key, value) in enumerate(delivery_dictionary.items())]:
+            print(x, indices)"""
+    #indices = [index for index, (key, value) in enumerate(delivery_dictionary.items())]
+    Alist = []
+    for index in [index for index, (key, value) in enumerate(delivery_dictionary.items())]:
+        if allocation_array[index] == cluster:
+            #print(index, cluster)
+            items_list = list(delivery_dictionary.items())
+            key, value = items_list[index]
+            Alist.append((key,value))
+            #print(key, value)
+    #NOTE We can introduce a sort here if we wish for consistency. Should work without
+    #print(Alist)
+    # We now have a list of points to be split
+    # need a list of cartesian coordinates
+    for key in Alist:
+        print(key[0])
+
+    #sub_list = create_sub_list(allocation_array, delivery_dictionary, cluster)
+    #cartestian_array = delivery_list_to_cartesian(sub_list)
+    #output = k_means(split_threshold, cartestian_array)
+    #print(output)
+
+
+
 
 def create_sub_list(allocation_array, delivery_dictionary, cluster_number):
     """

@@ -10,18 +10,27 @@ from route_solver.brute_force_solver import BruteForceSolver
 
 def new_main():
     delivery_list = JSON_to_pandas()
-    k = 1
+    delivery_list2 = JSON_to_pandas2()
+    k = 2
     split_threshold = 2
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
 
     allocation_array = get_customer_allocation(delivery_list, k, split_threshold)
     if(allocation_array is not None):
-        runsheet_dictionary = create_dictionary(delivery_list)
-        tree = partition_routes(allocation_array, split_threshold, runsheet_dictionary, dm, rs)
+        delivery_dictionary = create_dictionary(delivery_list)
+        tree = partition_routes(allocation_array, split_threshold, delivery_dictionary, dm, rs)
 
         print(tree)
-        print(allocation_array)
+        #print(allocation_array)
+    print("=====================================")
+    allocation_array = get_customer_allocation(delivery_list2, k, split_threshold)
+    if(allocation_array is not None):
+        delivery_dictionary = create_dictionary(delivery_list2)
+        tree = partition_routes(allocation_array, split_threshold, delivery_dictionary, dm, rs)
+
+        print(tree)
+        #print(allocation_array)
 
 
 def JSON_to_pandas():
@@ -31,7 +40,23 @@ def JSON_to_pandas():
         'Longitude': [115.905166, 115.886444, 115.870573, 115.920247, 115.799830, 115.801288]
     }
 
+    dummy2 = {
+        'ID': [16, 12, 13, 14, 15, 11],
+        'Latitude': [-31.899364, -32.010274, -32.090316, -32.000879, -31.900399, -32.040650],
+        'Longitude': [115.801288, 115.886444, 115.870573, 115.920247, 115.799830, 115.905166]
+    }
+
     df = pd.DataFrame(dummy)
+    return df
+
+def JSON_to_pandas2():
+    dummy2 = {
+        'ID': [16, 12, 13, 14, 15, 11],
+        'Latitude': [-31.899364, -32.010274, -32.090316, -32.000879, -31.900399, -32.040650],
+        'Longitude': [115.801288, 115.886444, 115.870573, 115.920247, 115.799830, 115.905166]
+    }
+
+    df = pd.DataFrame(dummy2)
     return df
     # check later https://saturncloud.io/blog/how-to-convert-nested-json-to-pandas-dataframe-with-specific-format/
 
