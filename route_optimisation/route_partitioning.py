@@ -1,7 +1,7 @@
 import numpy as np
 from geographic_processing import runsheet_to_cartesian
 from customer_allocation.customer_assignment import k_means
-from cluster_hierarchy_tree import *
+from tree_node import *
 import pandas as pd
 
 def partition_routesV3(allocation_array, split_threshold, runsheet_dictionary, dm, rs):

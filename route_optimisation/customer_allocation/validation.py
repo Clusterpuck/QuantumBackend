@@ -9,10 +9,13 @@ def validate_inputs(runsheet, k):
     :param int k: The person sending the message
     :param str connection_string: for the database
     """
-    __validate_runsheet_format(runsheet)
-    __validate_runsheet_entries(runsheet)
-    total_customers = runsheet.shape[0] # total_customer = no. of rows
-    __validate_k(k,total_customers)
+    try:
+        __validate_runsheet_format(runsheet)
+        __validate_runsheet_entries(runsheet)
+        total_customers = runsheet.shape[0] # total_customer = no. of rows
+        __validate_k(k,total_customers)
+    except (TypeError, ValueError) as ex:
+        raise IOError(ex) from ex
     return True
 
 def __validate_runsheet_format(runsheet):
@@ -34,17 +37,16 @@ def __validate_runsheet_format(runsheet):
         raise ValueError(f'runsheet must contain exactly three columns. '
                          f'Runsheet has {runsheet.shape[1]} columns')
 
-#TODO Validate that the customer corresponds to ID
-#TODO REDO
 def __validate_runsheet_entries(runsheet):
     """Verify the runsheet has correct values.
-    runsheet cannot contain null values, have correct labels, unique IDs and
-    unique customers.
+    runsheet cannot contain null values, have correct labels, unique IDs,
+    unique customers and valid latitude and longitude values
 
     :param pd.DataFrame runsheet: A runsheet containing IDs and customers
     :param str connection_string: for the database
 
-    :raises TypeError: If runsheet contains null, incorrect labels, non-unique IDs or customers
+    :raises ValueError: If runsheet contains null, incorrect labels, non-unique IDs or customers
+                       or invalid latitude, longitude values
     """
     if runsheet.isnull().values.any():
         raise ValueError('runsheet cannot have null values.')

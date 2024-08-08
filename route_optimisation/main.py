@@ -15,9 +15,7 @@ def new_main():
     rs = RouteSolverContext(BruteForceSolver())
 
     allocation_array = get_customer_allocation(delivery_list, k)
-    if(allocation_array is None):
-        print("Error")
-    else:
+    if(allocation_array is not None):
         runsheet_dictionary = create_dictionary(delivery_list)
         tree = partition_routesV3(allocation_array, 1, runsheet_dictionary, dm, rs)
 

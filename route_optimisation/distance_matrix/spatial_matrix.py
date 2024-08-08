@@ -1,5 +1,5 @@
 from distance_matrix.distance_matrix import DistanceMatrix
-from cluster_hierarchy_tree import TreeNode
+from tree_node import TreeNode
 from geographic_processing import new_geographic_array, geographic_to_cartesian
 
 import numpy as np

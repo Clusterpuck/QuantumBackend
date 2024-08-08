@@ -5,7 +5,7 @@ import numpy as np
 class BruteForceSolver(RouteSolver):
 
     def solve(self, distance_matrix: np.array):
-        n = len(distance_matrix) #TODO: Needs to handle 0 size matrix
+        n = len(distance_matrix)
         index = list(range(n))
         all_routes = permutations(index)
         
