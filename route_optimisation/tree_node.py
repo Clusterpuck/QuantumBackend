@@ -3,6 +3,7 @@ from route_solver.route_solver import RouteSolver
 import numpy as np
 
 class TreeNode:
+    # TODO Remove customers
     def __init__(self, cluster_id, customers=None, route=None):
         self.id = cluster_id
         self.customers = []
@@ -59,15 +60,17 @@ class TreeNode:
             y = route_solver.solve(x)
             customers = self.get_customers()
             optimal_route = []
+            #TODO enumerating without using data
             for index, item in enumerate(y[0]):
                 optimal_route.append(customers[index])
             self.route = optimal_route
             self.cost = y[1]
 
         else:
+            #TODO Here is the customer/route redundancy
             x = distance_matrix.build_parent_matrix(self, runsheet_dictionary)
-            y = route_solver.solve(x) # Works
-            customers = self.get_customers() #NOTE: This is the problem. Parents do not have proper routes yet. Make function to resolve.
+            y = route_solver.solve(x)
+            customers = self.get_customers()
             children = self.get_children()
             Alist = np.empty(len(children), dtype=object)
             for idx, data in enumerate(y):
