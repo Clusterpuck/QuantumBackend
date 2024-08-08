@@ -2,6 +2,7 @@
 
 import pandas as pd
 
+#TODO Comments need to be changed to numpy format
 def validate_inputs(runsheet, k):
     """Primary method that verifies runsheet and k value
 
