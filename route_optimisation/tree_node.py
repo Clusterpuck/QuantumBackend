@@ -39,22 +39,19 @@ class TreeNode:
         return ret
 
     def solve_node(self, distance_matrix: DistanceMatrix, route_solver: RouteSolver, runsheet_dictionary):
+        # If child
         if self.children == []:
-            x = distance_matrix.build_leaf_matrix(self, runsheet_dictionary)
-            y = route_solver.solve(x)
-            customers = self.get_customers()
-            optimal_route = []
-            for index in range(len(y[0])):
-                optimal_route.append(customers[index])
-            #self.route = optimal_route
-            self.cost = y[1]
+            matrix = distance_matrix.build_leaf_matrix(self, runsheet_dictionary)
+            y = route_solver.solve(matrix)
 
+        # If parent node
         else:
-            #TODO Here is the customer/route redundancy
-            x = distance_matrix.build_parent_matrix(self, runsheet_dictionary)
-            y = route_solver.solve(x)
-            customers = self.get_customers()
-            children = self.get_children()
+            matrix = distance_matrix.build_parent_matrix(self, runsheet_dictionary)
+            y = route_solver.solve(matrix)
+            #TODO: BUG Here. I'm currently just combining in order rather checking y's optimal route
+            print(y)
+
+            """children = self.get_children()
             Alist = np.empty(len(children), dtype=object)
 
             for idx in range(len(y[0])):
@@ -64,9 +61,33 @@ class TreeNode:
                 for j in i:
                     Blist.append(j)
 
-            #NOTE: IDK what's happening from here downwards
-            optimal_route = Blist
             self.customers = Blist
-            #self.route = Blist 
+            self.cost = y[1]"""
+
+            children = self.get_children()
+            # This should put the customers into the list
+            Alist = [child.get_customers() for child in children]
+            for child in children:
+                pass
+                #print(child.get_customers())
+            print("End loop")
+            print(Alist)
+            print(y)
+            print(y[0])
+
+            Blist = []
+            for sublist in Alist:
+                #print(sublist)
+                for customer in sublist:
+                    #print(customer)
+                    Blist.append(customer)
+            print("END Other loop")
+
+            # Equivlent structure
+            Blist = [customer for sublist in Alist for customer in sublist]
+            #######################
+            
+            print(Blist)
+            self.customers = Blist
             self.cost = y[1]
 
