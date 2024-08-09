@@ -35,11 +35,11 @@ def geographic_to_cartesian(geo_array):
     """
     cartesian_array = np.zeros((geo_array.shape[0],3))
     for index, x in enumerate(geo_array):
-        cartesian_coord = __get_cartesian(x[0],x[1])
+        cartesian_coord = get_cartesian(x[0],x[1])
         cartesian_array[index] = cartesian_coord
     return cartesian_array
 
-def __get_cartesian(lat,lon):
+def get_cartesian(lat,lon):
     """
     Get cartesian coordinate for a latitude and longitude point
 
@@ -78,4 +78,5 @@ def delivery_list_to_cartesian(delivery_list):
     """
     geo_array = geographic_array(delivery_list)
     cartesian_array = geographic_to_cartesian(geo_array)
+    #print(cartesian_array)
     return cartesian_array

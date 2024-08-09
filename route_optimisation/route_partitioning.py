@@ -1,6 +1,6 @@
 import numpy as np
-from geographic_processing import delivery_list_to_cartesian
-from customer_allocation.customer_assignment import k_means
+from geographic_processing import delivery_list_to_cartesian, get_cartesian
+from customer_allocation.customer_assignment import k_means, k_means2
 from tree_node import TreeNode
 import pandas as pd
 from collections import OrderedDict
@@ -32,8 +32,9 @@ def partition_routes(allocation_array, split_threshold, delivery_dictionary,
     tree = TreeNode("root")
     copy = allocation_array.copy()
     new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
-    #new_array = partition(copy, delivery_dictionary, 0, new_array, split_threshold, None, tree, distance_matrix, route_solver) #TODO Problem here
-    new_array = partitionV2(allocation_array, delivery_dictionary, split_threshold)
+    new_array = partition(copy, delivery_dictionary, 0, new_array, split_threshold, None, tree, distance_matrix, route_solver) #TODO Problem here
+    #new_array = partitionV2(allocation_array, delivery_dictionary, split_threshold)
+    print("new_array", new_array)
     return tree
 
 def partition(allocation_array, delivery_list, cluster_number, new_array, split_threshold, 
@@ -109,19 +110,30 @@ def partition(allocation_array, delivery_list, cluster_number, new_array, split_
                 leaf.solve_node(dm, rs, delivery_list)
     return new_array
 
-def partitionV2(allocation_array, delivery_dictionary, split_threshold):
+def partitionV2(allocation_array, delivery_dictionary, split_threshold, processed_points=None):
     copy = allocation_array.copy()
     print("Copy:", copy)
 
+    if processed_points is None:
+        processed_points = []
+    
+    new_allocation = allocation_array.copy()
+
     for cluster in np.unique(copy):
         #print(cluster)
-        points = np.where(allocation_array == cluster)[0]
-        #print(points)
-        # I need to split
-        if points.size >= 2:
-            cluster_nodeV2(copy, delivery_dictionary, cluster, split_threshold)
-            pass
-            # I need to breakdown the nodes
+        if cluster not in processed_points:
+            points = np.where(copy == cluster)[0]
+            #print(points)
+            # I need to split
+            if points.size > 2:
+                new_allocation = cluster_nodeV2(copy, delivery_dictionary, cluster, split_threshold)
+                thing = find_added_values(copy, new_allocation)
+                print("thing", thing)
+                new_allocation = partitionV2(new_allocation, delivery_dictionary, split_threshold, processed_points)
+        else:
+            processed_points.append(cluster)
+    print(processed_points)
+    return new_allocation
             
 
 
@@ -194,13 +206,26 @@ def cluster_nodeV2(allocation_array, delivery_dictionary: OrderedDict, cluster, 
     #print(Alist)
     # We now have a list of points to be split
     # need a list of cartesian coordinates
-    for key in Alist:
-        print(key[0])
+    # First need to iterate over 
+    #cartesian_array = np.full(len(Alist), fill_value = -1.0, dtype = float)
+    print(Alist)
 
-    #sub_list = create_sub_list(allocation_array, delivery_dictionary, cluster)
-    #cartestian_array = delivery_list_to_cartesian(sub_list)
-    #output = k_means(split_threshold, cartestian_array)
-    #print(output)
+    output_list = [(id, get_cartesian(lat, lon)) for id, (lat, lon) in Alist]
+    new_allocation = k_means2(2, output_list)
+    print(output_list)
+    print(allocation_array)
+    print(new_allocation)
+    updated_allocation = np.copy(allocation_array)
+    idx = 0
+    output_tracker = 0
+    for x in allocation_array:
+        if(x == cluster):
+            updated_allocation[idx] = max(allocation_array) + 1 + new_allocation[output_tracker]
+            output_tracker += 1
+        idx += 1
+        #if
+    print(updated_allocation)
+    return updated_allocation
 
 
 

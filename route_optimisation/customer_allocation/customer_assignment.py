@@ -70,6 +70,14 @@ def k_means(k, cartesian_array):
         List of point allocations
         [0, 1, 0] means cluster 0 has point 0 and point 2, cluster 1 has point 1
     """
-    kmeans = KMeans(n_clusters=k, random_state=0, n_init="auto").fit(cartesian_array)
+    kmeans = KMeans(n_clusters=k, random_state=0, n_init=10).fit(cartesian_array)
+    labels = kmeans.labels_
+    return labels
+
+def k_means2(k, cartesian_array):
+    coordinates_only = [coords for _, coords in cartesian_array]
+    print("==============Kmeans Cartesian\n", coordinates_only)
+    print("\n==============Kmeans CartesianE")
+    kmeans = KMeans(n_clusters=k, random_state=0, n_init=10).fit(coordinates_only)
     labels = kmeans.labels_
     return labels
