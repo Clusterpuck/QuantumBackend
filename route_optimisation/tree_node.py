@@ -75,6 +75,18 @@ class TreeNode:
             print(y)
             print(y[0])
 
+            new_array = []
+            """new_array.append(Alist[0])
+            new_array.append(Alist[1])
+            for x in range(len(y[0])):
+                new_array.append(Alist[])"""
+
+            new_array = [Alist[i] for i in y[0]]
+            flattened_list = [item for sublist in new_array for item in sublist]
+
+            print("FINAL ARRAY: ", flattened_list)
+            
+
             Blist = []
             for sublist in Alist:
                 #print(sublist)
@@ -88,6 +100,6 @@ class TreeNode:
             #######################
             
             print(Blist)
-            self.customers = Blist
+            self.customers = flattened_list
             self.cost = y[1]
 

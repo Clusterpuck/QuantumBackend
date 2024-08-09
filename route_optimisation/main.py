@@ -10,7 +10,7 @@ from route_solver.brute_force_solver import BruteForceSolver
 
 def optimise_route(data, k, split_threshold, dm, rs):
     delivery_list = JSON_to_pandas(data)
-    #delivery_list2 = JSON_to_pandas2()
+    delivery_list2 = JSON_to_pandas2()
     allocation_array = get_customer_allocation(delivery_list, k, split_threshold)
     if(allocation_array is not None):
         delivery_dictionary = create_dictionary(delivery_list)
@@ -19,13 +19,13 @@ def optimise_route(data, k, split_threshold, dm, rs):
         print(tree)
         #print(allocation_array)
     print("=====================================")
-    """allocation_array = get_customer_allocation(delivery_list2, k, split_threshold)
+    allocation_array = get_customer_allocation(delivery_list2, k, split_threshold)
     if(allocation_array is not None):
         delivery_dictionary = create_dictionary(delivery_list2)
         tree = partition_routes(allocation_array, split_threshold, delivery_dictionary, dm, rs)
 
         print(tree)
-        #print(allocation_array)"""
+        #print(allocation_array)
 
 
 def JSON_to_pandas(data):
