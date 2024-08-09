@@ -110,7 +110,7 @@ def partition(allocation_array, delivery_list, cluster_number, new_array, split_
                 leaf.solve_node(dm, rs, delivery_list)
     return new_array
 
-def partitionV2(allocation_array, delivery_dictionary, split_threshold, processed_points=None):
+"""def partitionV2(allocation_array, delivery_dictionary, split_threshold, processed_points=None):
     copy = allocation_array.copy()
     print("Copy:", copy)
 
@@ -133,7 +133,7 @@ def partitionV2(allocation_array, delivery_dictionary, split_threshold, processe
         else:
             processed_points.append(cluster)
     print(processed_points)
-    return new_allocation
+    return new_allocation"""
             
 
 
@@ -180,7 +180,7 @@ def cluster_node(allocation_array, delivery_dictionary, cluster, split_threshold
             output_tracker += 1
     return temparray
 
-def cluster_nodeV2(allocation_array, delivery_dictionary: OrderedDict, cluster, split_threshold):
+"""def cluster_nodeV2(allocation_array, delivery_dictionary: OrderedDict, cluster, split_threshold):
     # Your job is to do k-means again
     # I need to check the allocation_array to get points that belong to the cluster
     indices = np.where(allocation_array == cluster)[0]
@@ -190,9 +190,9 @@ def cluster_nodeV2(allocation_array, delivery_dictionary: OrderedDict, cluster, 
     
     print("=======E")
 
-    """for x in allocation_array:
-        for indices in [index for index, (key, value) in enumerate(delivery_dictionary.items())]:
-            print(x, indices)"""
+    #for x in allocation_array:
+    #    for indices in [index for index, (key, value) in enumerate(delivery_dictionary.items())]:
+    #        print(x, indices)
     #indices = [index for index, (key, value) in enumerate(delivery_dictionary.items())]
     Alist = []
     for index in [index for index, (key, value) in enumerate(delivery_dictionary.items())]:
@@ -225,7 +225,7 @@ def cluster_nodeV2(allocation_array, delivery_dictionary: OrderedDict, cluster, 
         idx += 1
         #if
     print(updated_allocation)
-    return updated_allocation
+    return updated_allocation"""
 
 
 
