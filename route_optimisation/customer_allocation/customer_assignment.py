@@ -16,7 +16,7 @@ def get_customer_allocation(delivery_list, k, split_threshold):
         Dataframes containing Customer IDs, latitude and longitude
     k: int
         How many routes must be created
-    k: int
+    split_threshold: int
         How many sub-routes are made per split
 
     Returns
