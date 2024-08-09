@@ -8,7 +8,7 @@ from distance_matrix.spatial_matrix import SpatialMatrix
 from route_solver.route_solver_context import RouteSolverContext
 from route_solver.brute_force_solver import BruteForceSolver
 
-def new_main(data, k, split_threshold, dm, rs):
+def optimise_route(data, k, split_threshold, dm, rs):
     delivery_list = JSON_to_pandas(data)
     #delivery_list2 = JSON_to_pandas2()
     allocation_array = get_customer_allocation(delivery_list, k, split_threshold)
@@ -58,4 +58,4 @@ k = 3
 split_threshold = 2
 dm = DistanceMatrixContext(SpatialMatrix())
 rs = RouteSolverContext(BruteForceSolver())
-new_main(None, k, split_threshold, dm, rs)
+optimise_route(None, k, split_threshold, dm, rs)
