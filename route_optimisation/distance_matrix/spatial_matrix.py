@@ -15,8 +15,8 @@ class SpatialMatrix(DistanceMatrix):
         end_points = []
         internal_costs = []
         for x in nodes:
-            start_points.append(x.get_route()[0])
-            end_points.append(x.get_route()[-1])
+            start_points.append(x.get_customers()[0])
+            end_points.append(x.get_customers()[-1])
             internal_costs.append(x.get_cost())
 
         n = len(start_points)
