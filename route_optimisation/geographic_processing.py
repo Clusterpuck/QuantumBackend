@@ -1,57 +1,82 @@
+"""Handles geographic processing of points"""
+
 import numpy as np
-import pyodbc
 
-import database_connector as dc
+def geographic_array(delivery_list):
+    """
+    Grab the longitude and latitude from delivery_list
 
-# Get geographic array
-# Assumed valid, will have to query Db for lat, long (index,[lat, long])
-# ProgrammingError for query
-def geographic_array(runsheet, connection_string):
-    conn = dc.DatabaseConnector(connection_string)
+    Parameters
+    ----------
+    delivery_list: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
 
-    customer_ids = tuple(runsheet.iloc[:, 0]) # Tuple of customer IDs
+    Returns
+    -------
+    lat_long_array: numpy.ndarray
+        array of arrays containing latitude and longitude
+    """
+    lat_long_array = delivery_list[['Latitude', 'Longitude']].to_numpy()
+    return lat_long_array
 
-    if len(customer_ids) == 1:
-        customer_ids = f"({customer_ids[0]})"
-
-    query = f'SELECT ID, latitude, longitude FROM Customer WHERE ID IN {customer_ids}'
-
-    cursor = conn.create_cursor()
-    #print(query)
-    cursor.execute(query)
-    customer_data = cursor.fetchall()
-    conn.close_cursor(cursor)
-
-    # Create dictionary based on database result        
-    customer_dict = {row[0]: (row[1], row[2]) for row in customer_data}
-
-    # Init empty array
-    array = np.zeros((runsheet.shape[0], 2))
-
-    # Fill in array, get values from dictionary
-    for counter, row in enumerate(runsheet.itertuples(index=False)):
-        #print("row[0]", row[0])
-        customer_location = customer_dict.get(row[0])
-        if customer_location is None:
-            raise pyodbc.DatabaseError(f'Entry does not exist. {row}')
-        array[counter] = customer_location
-    #print("THING", array, runsheet)
-    return array
-
-
-# Convert geographic to cartesian
-# Simple math conversion
 def geographic_to_cartesian(geo_array):
+    """
+    convert geographic locations to 3D cartesian coordinates
+
+    Parameters
+    ----------
+    geo_array: numpy.ndarray
+        Contains latitude and longitude
+
+    Returns
+    -------
+    cartesian_array: numpy.ndarray
+        Contains x,y,z coordinate on cartesian plane
+    """
     cartesian_array = np.zeros((geo_array.shape[0],3))
     for index, x in enumerate(geo_array):
-        cartesian_coord = __get_cartesian(x[0],x[1])
+        cartesian_coord = get_cartesian(x[0],x[1])
         cartesian_array[index] = cartesian_coord
     return cartesian_array
 
-def __get_cartesian(lat=None,lon=None):
+def get_cartesian(lat,lon):
+    """
+    Get cartesian coordinate for a latitude and longitude point
+
+    Parameters
+    ----------
+    lat: float
+        latitude value
+    lon: float
+        longitude value
+
+    Returns
+    -------
+    numpy.ndarray
+        Contains x,y,z coordinate on cartesian plane
+    """
     lat, lon = np.deg2rad(lat), np.deg2rad(lon)
-    R = 6371 # radius of the earth
-    x = R * np.cos(lat) * np.cos(lon)
-    y = R * np.cos(lat) * np.sin(lon)
-    z = R *np.sin(lat)
+    r = 6371 # radius of the earth
+    x = r * np.cos(lat) * np.cos(lon)
+    y = r * np.cos(lat) * np.sin(lon)
+    z = r * np.sin(lat)
     return np.array((x,y,z))
+
+def delivery_list_to_cartesian(delivery_list):
+    """
+    Convert a delivery list to a cartesian array
+
+    Parameters
+    ----------
+    delivery_list: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+
+    Returns
+    -------
+    cartesian_array: numpy.ndarray
+        Contains x,y,z coordinate on cartesian plane
+    """
+    geo_array = geographic_array(delivery_list)
+    cartesian_array = geographic_to_cartesian(geo_array)
+    #print(cartesian_array)
+    return cartesian_array

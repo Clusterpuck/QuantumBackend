@@ -1,272 +1,288 @@
 import numpy as np
-import pyodbc
-import os
-from sklearn.cluster import KMeans
-from customer_allocation.customer_allocation import get_cartesian, get_customer_allocation2
-from cluster_hierarchy_tree import *
+from geographic_processing import delivery_list_to_cartesian, get_cartesian
+from customer_allocation.customer_assignment import k_means, k_means2
+from tree_node import TreeNode
 import pandas as pd
+from collections import OrderedDict
 
-# Deprecated
-def partition_routes(allocation_array, split_threshold, runsheet_dictionary):
-    # Check validity of params
-    new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
-    #print("PRE cluster", np.unique(allocation_array))
-    for cluster in np.unique(allocation_array):
-        points = np.where(allocation_array == cluster)[0]
-        #print("Points",points)
-        if points.size > split_threshold:
-            #print("IF")
-            print("BEFORE", new_array)
-            new_array = recursive_split(runsheet_dictionary, cluster, allocation_array, new_array)
-            print("AFTER", new_array)
-        else:
-            print()
-            #new_array = insert_into_array(new_array, allocation_array, cluster)
 
-    print("FINAL new_array", new_array)
-    print("PRE cluster", np.unique(allocation_array))
-    print("FINAL allocation_array", allocation_array)
+def partition_routes(allocation_array, split_threshold, delivery_dictionary, 
+                     distance_matrix, route_solver):
+    """
+    Partition route into sub routes so they can be solved.
 
-def partition_routes2(allocation_array, split_threshold, runsheet_dictionary):
-    #DECLARE ROOT
+    Parameters
+    ----------
+    allocation_array: numpy.ndarray
+        List of point allocations
+    split_threshold: int
+        How many clusters should exist for route partitioning
+    delivery_dictionary: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+    distance_matrix: DistanceMatrixContext
+        The distance matrix building method
+    route_solver: RouteSolver
+        The route solving method
+
+    Returns
+    -------
+    tree: TreeNode
+        The entire tree of routes post-partitioning
+    """
     tree = TreeNode("root")
-    print("Create Tree")
     copy = allocation_array.copy()
     new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
-    new_array = recursion3(copy, runsheet_dictionary, 0, new_array, split_threshold, None, None, tree) # Pass in the tree
-    print("FINAL na", new_array)
-    print("FINAL c ", copy)
-    print("FINAL aa", allocation_array)
-    print("Runsheet Dictionary", runsheet_dictionary)
+    new_array = partition(copy, delivery_dictionary, 0, new_array, split_threshold, None, tree, distance_matrix, route_solver) #TODO Problem here
+    #new_array = partitionV2(allocation_array, delivery_dictionary, split_threshold)
+    print("new_array", new_array)
     return tree
 
+def partition(allocation_array, delivery_list, cluster_number, new_array, split_threshold, 
+              new_clusters=None, cluster_tree: TreeNode=None, dm=None, rs=None):
+    """
+    Recursively partition routes until every node is solved
 
-def recursion2(allocation_array, runsheet_dictionary, cluster_number, new_array, split_threshold):
-    #if cluster_number is None:
-    for cluster in np.unique(allocation_array):
-        print("=================")
-        points = np.where(allocation_array == cluster)[0]
-        """if points.size <= split_threshold and not np.isin(cluster, allocation_array):
-            print("Cluster", cluster)
-            print("Points", points, "\n")
-            new_array = insert_into_array(new_array, allocation_array, cluster)
-        else:
-            temp_array = get_subsheet(allocation_array, runsheet_dictionary, cluster)
-            recursion2(allocation_array, runsheet_dictionary, None, temp_array, split_threshold)
-            print("recursionTemp",temp_array)"""
-        if points.size > split_threshold:
-            temp_array = get_subsheet(allocation_array, runsheet_dictionary, cluster)
-            print("----------------ENTER", cluster_number)
-            # If you entering this, then you are trying to split. Create a parent node here, pass parent in
-            new_array = recursion2(temp_array, runsheet_dictionary, cluster, temp_array, split_threshold)
-            print("----------------EXIT", cluster_number)
-        else:
-            print(new_array)
-            print("ENTERED ELSE")
-            pass # Add leaf node
-    return new_array
+    Parameters
+    ----------
+    allocation_array: numpy.ndarray
+        List of point allocations
+    delivery_list: pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+    cluster_number: int
+        the cluster id
+    new_array: numpy.ndarray
+        allocation array post-clustering
+    split_threshold: int
+        k value for clustering
+    processed_clusters: Set
+        Set of cluster ids that have been solved
+    new_clusters: numpy.ndarray
+        array of new clusters ids that have been added
+    cluster_tree: TreeNode
+        node from cluster tree
+    distance_matrix: DistanceMatrixContext
+        The distance matrix building method
+    route_solver: RouteSolver
+        The route solving method
 
-def recursion3(allocation_array, runsheet_dictionary, cluster_number, new_array, split_threshold, processed_clusters=None, other_clusters=None, cluster_tree=None):
-    #if cluster_number is None:
-    print("recursion3 called")
-    if processed_clusters is None:
-        processed_clusters = set()
-
-    if other_clusters is None:
-        thing = allocation_array.copy()
+    Returns
+    -------
+    new_array: numpy.ndarray
+        allocation array post-clustering
+    """
+            
+    if new_clusters is None:
+        # Set unprocessed clusters to allocations, happens once
+        unprocessed_clusters = allocation_array.copy()
     else:
-        thing = other_clusters.copy()
+        # Set unprocessed clusters to those that have been added from previous split
+        unprocessed_clusters = new_clusters.copy()
 
-    #for cluster in np.unique(allocation_array):
-    for cluster in np.unique(thing):
-
-        if cluster in processed_clusters:
-            continue
-
+    # for each unique cluster that has not yet been processed
+    for cluster in np.unique(unprocessed_clusters):
+        # Grab indices of points from cluster, store in array
         points = np.where(allocation_array == cluster)[0]
-        """if points.size <= split_threshold and not np.isin(cluster, allocation_array):
-            print("Cluster", cluster)
-            print("Points", points, "\n")
-            new_array = insert_into_array(new_array, allocation_array, cluster)
-        else:
-            temp_array = get_subsheet(allocation_array, runsheet_dictionary, cluster)
-            recursion2(allocation_array, runsheet_dictionary, None, temp_array, split_threshold)
-            print("recursionTemp",temp_array)"""
+        # Cluster too big
         if points.size > split_threshold:
             comparison = allocation_array.copy()
-            #print("xxxxxx", allocation_array)
-            temp_array = get_subsheet(allocation_array, runsheet_dictionary, cluster)
-            y = find_added_values(comparison, temp_array)
-            print(y)
-            #print("xxxxxx", temp_array)
+            # Split the cluster down
+            temp_array = cluster_node(allocation_array, delivery_list, cluster, split_threshold) #TODO What does this do
+            new_clusters = find_added_values(comparison, temp_array)
 
             cluster_number += 1
-            print("----------------ENTER", cluster_number, cluster)
-            # If you entering this, then you are trying to split. Create a parent node here, pass parent in
-            print("Create Parent node", cluster_number, cluster)
-            parent = TreeNode(cluster)
-            cluster_tree.add_child(parent)
-            print(temp_array, cluster_number, cluster)
-            new_array = recursion3(temp_array, runsheet_dictionary, cluster_number, temp_array, split_threshold, processed_clusters, y, parent)
-            print("----------------EXIT", cluster_number, cluster)
+            
+            parent = TreeNode(cluster) # Create a node for this cluster
+            cluster_tree.add_child(parent) # Add to child
+            # Recursively partition sub-clusters
+            new_array = partition(temp_array, delivery_list, cluster_number, temp_array, split_threshold, new_clusters, parent, dm, rs)
+            # Solve the node
+            parent.solve_node(dm, rs, delivery_list)
+        # Cluster is small enough
         else:
-            processed_clusters.add(cluster)
+            # Cluster is considered processed
+            #processed_clusters.add(cluster)
             if points.size > 0:
-                print("Create Leaf", cluster, points)
                 leaf = TreeNode(cluster)
                 for point in points:
-                    key = list(runsheet_dictionary.keys())[point]
+                    key = list(delivery_list.keys())[point]
                     leaf.add_customer(key)
                 cluster_tree.add_child(leaf)
-            pass # Add leaf node
+                leaf.solve_node(dm, rs, delivery_list)
     return new_array
 
-def get_subsheet(allocation_array, runsheet_dictionary, cluster):
+def partitionV2(allocation_array, delivery_dictionary, split_threshold, processed_points=None):
+    copy = allocation_array.copy()
+    print("Copy:", copy)
+
+    if processed_points is None:
+        processed_points = []
     
-    #print("subcluster",cluster)
-    #print("suballoc",allocation_array)
+    new_allocation = allocation_array.copy()
 
-    if np.where(allocation_array == cluster)[0].size == 1:
-        print()
+    for cluster in np.unique(copy):
+        #print(cluster)
+        if cluster not in processed_points:
+            points = np.where(copy == cluster)[0]
+            #print(points)
+            # I need to split
+            if points.size > 2:
+                new_allocation = cluster_nodeV2(copy, delivery_dictionary, cluster, split_threshold)
+                thing = find_added_values(copy, new_allocation)
+                print("thing", thing)
+                new_allocation = partitionV2(new_allocation, delivery_dictionary, split_threshold, processed_points)
+        else:
+            processed_points.append(cluster)
+    print(processed_points)
+    return new_allocation
+            
 
-    mydataset = {
-        'ID': [],
-        'Customer': []
-    }
 
-    for x in np.where(allocation_array == cluster)[0]:
-        key = list(runsheet_dictionary.keys())[x]
-        value = runsheet_dictionary.get(key)
-        mydataset['ID'].append(key)
-        mydataset['Customer'].append(value)
-    subsheet = pd.DataFrame(mydataset)
 
-    try:
-        connection_string = os.getenv('QuantumTestString')
-    except (pyodbc.DatabaseError) as ex:
-        print(ex)
-    cartestian_array = get_cartesian(subsheet, connection_string)
-    if cartestian_array.size != 3:
-        output = get_customer_allocation2(2, cartestian_array)
+# TODO: This is what needs to be changed
+def cluster_node(allocation_array, delivery_dictionary, cluster, split_threshold):
+    """
+    Cluster a node into sub nodes
+
+    Parameters
+    ----------
+    allocation_array: numpy.ndarray
+        List of point allocations
+    delivery_dictionary: OrderedDict
+        key = customerID
+        value = (latitude, longitude)
+    cluster: int
+        the cluster id
+    split_threshold: int
+        k value for split
+
+    Returns
+    -------
+    temp_array: numpy.ndarray
+        new allocation of nodes after split
+    """
+    sub_list = create_sub_list(allocation_array, delivery_dictionary, cluster)
+    cartestian_array = delivery_list_to_cartesian(sub_list)
+
+    # If greater than one point
+    if cartestian_array.shape[0] > 1:
+        output = k_means(split_threshold, cartestian_array)
     else:
         output = [0]
 
-    # Do not change below to copy, does unnecessary recursion due to copy nature
-    temparray = allocation_array #TODO, Screwed this up #allocation_array.copy().
+    # for each entry in the allocation array, if it matches our current cluster, change the value to the output value
+    #temparray = allocation_array.copy()
     cluster_value = max(allocation_array) + 1
+    temparray = np.copy(allocation_array)
     output_tracker = 0
     for counter, x in enumerate(allocation_array):
         if x == cluster:
             temparray[counter] = output[output_tracker] + cluster_value
             output_tracker += 1
-    #print("A", allocation_array)
-    #print("t", temparray)
     return temparray
 
-
-
-def insert_into_array(new_array, old_array, number):
-    if len(new_array) != len(old_array):
-        raise ValueError("Both arrays must have the same length.")
-    #print(new_array)
-    for i in enumerate(new_array):
-        if old_array[i[0]] == number:
-            new_array[i[0]] = old_array[i[0]]
-    #print(new_array)
-    return new_array
-
-# If we have duplicate customers, must change the dictionary to a list or something
-# ASSUMES: 1-1 relationship with ID and Customer (Both Ways)
-# Could try passing the distance matrix down as param and get rid of irrelevant entries? Saves time and Db Access
-# Maybe do a if none check
-    # None -> get distance matrix
-    # Exists -> drop irrelevant entries then do k-means
-def recursive_split(runsheet_dictionary, number, allocation_array, new_array):
-    #allocation_array =  np.array([0, 1, 1, 1]) #NOTE TESTING OVERRIDES
-    #output =  np.array([1, 0, 1])
-    print("PRE SPLIT", allocation_array)
-    #print(number)
-    #print(np.where(allocation_array == number)[0])
-    mydataset = {
-        'ID': [],
-        'Customer': []
-    }
-
-    for x in np.where(allocation_array == number)[0]:
-        key = list(runsheet_dictionary.keys())[x]
-        value = runsheet_dictionary.get(key)
-        mydataset['ID'].append(key)
-        mydataset['Customer'].append(value)
-    subsheet = pd.DataFrame(mydataset)
-    #print("SUB",subsheet)
-    #print("==================")
-    #print(mydataset)
-    try:
-        connection_string = os.getenv('QuantumTestString')
-    except (pyodbc.DatabaseError) as ex:
-        print(ex)
-    cartestian_array = get_cartesian(subsheet, connection_string)
-    output = get_customer_allocation2(2, cartestian_array) #TODO Rename this, it is cursed, Also k value optimisation
-    #TODO GET CUSTOMERS /\
-    #print(output)
-    #print("==================")
+def cluster_nodeV2(allocation_array, delivery_dictionary: OrderedDict, cluster, split_threshold):
+    # Your job is to do k-means again
+    # I need to check the allocation_array to get points that belong to the cluster
+    indices = np.where(allocation_array == cluster)[0]
+    print("=======S")
+    print(allocation_array)
+    print(cluster)
     
-    # Annoying to explain loop
-    # Apply the split to Original array
-    temparray = allocation_array
-    cluster_value = max(allocation_array) + 1
+    print("=======E")
+
+    """for x in allocation_array:
+        for indices in [index for index, (key, value) in enumerate(delivery_dictionary.items())]:
+            print(x, indices)"""
+    #indices = [index for index, (key, value) in enumerate(delivery_dictionary.items())]
+    Alist = []
+    for index in [index for index, (key, value) in enumerate(delivery_dictionary.items())]:
+        if allocation_array[index] == cluster:
+            #print(index, cluster)
+            items_list = list(delivery_dictionary.items())
+            key, value = items_list[index]
+            Alist.append((key,value))
+            #print(key, value)
+    #NOTE We can introduce a sort here if we wish for consistency. Should work without
+    #print(Alist)
+    # We now have a list of points to be split
+    # need a list of cartesian coordinates
+    # First need to iterate over 
+    #cartesian_array = np.full(len(Alist), fill_value = -1.0, dtype = float)
+    print(Alist)
+
+    output_list = [(id, get_cartesian(lat, lon)) for id, (lat, lon) in Alist]
+    new_allocation = k_means2(2, output_list)
+    print(output_list)
+    print(allocation_array)
+    print(new_allocation)
+    updated_allocation = np.copy(allocation_array)
+    idx = 0
     output_tracker = 0
-    for counter, x in enumerate(allocation_array):
-        if x == number:
-            temparray[counter] = output[output_tracker] + cluster_value
+    for x in allocation_array:
+        if(x == cluster):
+            updated_allocation[idx] = max(allocation_array) + 1 + new_allocation[output_tracker]
             output_tracker += 1
+        idx += 1
+        #if
+    print(updated_allocation)
+    return updated_allocation
+
+
+
+
+def create_sub_list(allocation_array, delivery_dictionary, cluster_number):
+    """
+    Recursively partition routes until every node is solved
+
+    Parameters
+    ----------
+    allocation_array: numpy.ndarray
+        List of point allocations
+    delivery_dictionary: OrderedDict
+        key = customerID
+        value = (latitude, longitude)
+    cluster_number: int
+        the cluster id
+
+    Returns
+    -------
+    sub_list: pandas.DataFrame
+        dataframe containing entries of the current
+    """
+    dataset = {
+        'ID': [],
+        'Latitude': [],
+        'Longitude': []
+    }
     
-    #print("------------")
-    #print(temparray)
-    # Do a k-means split
-    # Check size of each cluster
-    #   Too big, call split again on cluster
-    #   Just fine, all Good
-
-    ##########CURSED REPEATED CODE
-
-    #new_array = np.full(allocation_array.shape[0], fill_value = -1, dtype = int)
-
-    for cluster in np.unique(allocation_array):
-        points = np.where(allocation_array == cluster)[0]
-        if points.size > 1:
-            print("IFR")
-
-            new_array = recursive_split(runsheet_dictionary, cluster, allocation_array, new_array)
-        else:
-            #print("insert_into_arrayR", points)
-            print("BEFORER", new_array)
-            new_array = insert_into_array(new_array, allocation_array, cluster)
-            print("AFTERR", new_array)
-    ##########CURSED REPEATED CODE
-    
-    print()
-    print()
-    print()
-    return temparray
+    for x in np.where(allocation_array == cluster_number)[0]:
+        key = list(delivery_dictionary.keys())[x]
+        value = delivery_dictionary.get(key)
+        dataset['ID'].append(key)
+        dataset['Latitude'].append(value[0])
+        dataset['Longitude'].append(value[1])
+    sub_list = pd.DataFrame(dataset)
+    return sub_list
 
 def find_added_values(arr1, arr2):
+    """
+    Find the new values in arr2 based on arr1
+
+    Parameters
+    ----------
+    arr1: numpy.ndarray 
+        old array
+    arr2: numpy.ndarray 
+        new array
+
+    Returns
+    -------
+    numpy.ndarray
+        Contains added values in a list
+    """
     set1 = set(np.unique(arr1))
     set2 = set(np.unique(arr2))
 
     added = set2 - set1
 
     return np.array(list(added))
-"""
-    allocations = np.array([1, 2, 1, 1, 3])
-
-    # Find unique clusters
-    unique_clusters = np.unique(allocations)
-    print(np.unique(allocations))
-
-    # Iterate over each unique cluster
-    for cluster in unique_clusters:
-        # Find points in the current cluster
-        points = np.where(allocations == cluster)[0]
-        print(f"Cluster {cluster} has points at indices: {points}")
-"""
