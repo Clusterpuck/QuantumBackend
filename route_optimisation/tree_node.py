@@ -60,8 +60,7 @@ class TreeNode:
             y = route_solver.solve(x)
             customers = self.get_customers()
             optimal_route = []
-            #TODO enumerating without using data
-            for index, item in enumerate(y[0]):
+            for index in range(len(y[0])):
                 optimal_route.append(customers[index])
             self.route = optimal_route
             self.cost = y[1]
@@ -73,7 +72,8 @@ class TreeNode:
             customers = self.get_customers()
             children = self.get_children()
             Alist = np.empty(len(children), dtype=object)
-            for idx, data in enumerate(y[0]):
+
+            for idx in range(len(y[0])):
                 Alist[idx] = children[idx].get_route()
             Blist = []
             for i in Alist:

@@ -8,13 +8,9 @@ from distance_matrix.spatial_matrix import SpatialMatrix
 from route_solver.route_solver_context import RouteSolverContext
 from route_solver.brute_force_solver import BruteForceSolver
 
-def new_main():
-    delivery_list = JSON_to_pandas()
+def new_main(data, k, split_threshold, dm, rs):
+    delivery_list = JSON_to_pandas(data)
     #delivery_list2 = JSON_to_pandas2()
-    k = 3
-    split_threshold = 2
-    dm = DistanceMatrixContext(SpatialMatrix())
-    rs = RouteSolverContext(BruteForceSolver())
     allocation_array = get_customer_allocation(delivery_list, k, split_threshold)
     if(allocation_array is not None):
         delivery_dictionary = create_dictionary(delivery_list)
@@ -32,7 +28,7 @@ def new_main():
         #print(allocation_array)"""
 
 
-def JSON_to_pandas():
+def JSON_to_pandas(data):
     dummy = {
         'ID': [11, 12, 13, 14, 15, 16, 17, 18],
         'Latitude': [-32.040650, -32.010274, -32.090316, -32.000879, -31.900399, -31.899364, -20, -10],
@@ -57,9 +53,9 @@ def JSON_to_pandas2():
 
     df = pd.DataFrame(dummy2)
     return df
-    # check later https://saturncloud.io/blog/how-to-convert-nested-json-to-pandas-dataframe-with-specific-format/
 
-#TODO: Make this a function
-#TODO: Correct terminology. A runsheet exists for each truck
-if __name__=="__main__": 
-    new_main()
+k = 3
+split_threshold = 2
+dm = DistanceMatrixContext(SpatialMatrix())
+rs = RouteSolverContext(BruteForceSolver())
+new_main(None, k, split_threshold, dm, rs)
