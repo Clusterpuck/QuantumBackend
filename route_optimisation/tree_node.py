@@ -3,11 +3,10 @@ from route_solver.route_solver import RouteSolver
 import numpy as np
 
 class TreeNode:
-    # TODO Remove customers
-    def __init__(self, cluster_id):# customers=None, route=None):
+
+    def __init__(self, cluster_id):
         self.id = cluster_id
         self.customers = []
-        #self.route = []
         self.children = []
         self.cost = None
 
@@ -17,9 +16,6 @@ class TreeNode:
 
     def get_customers(self):
         return self.customers
-    
-    """def get_route(self):
-        return self.route"""
     
     def get_children(self):
         return self.children
@@ -35,18 +31,6 @@ class TreeNode:
 
     def add_customer(self, customer):
         self.customers.append(customer)
-
-    def set_customers(self, customers):
-        self.customers = customers
-
-    """def post_order_dfs2(self, distance_matrix, route_solver, runsheet_dictionary): #Feed in a DistanceMatrix, RouteSolver
-        self._post_order_dfs_helper2(self, distance_matrix, route_solver, runsheet_dictionary)
-
-    def _post_order_dfs_helper2(self, node, distance_matrix, route_solver, runsheet_dictionary):
-        for child in node.children:
-            self._post_order_dfs_helper2(child, distance_matrix, route_solver, runsheet_dictionary)
-        if node.get_id() != "root":
-            node.solve_node(distance_matrix, route_solver, runsheet_dictionary)"""
 
     def __repr__(self, level=0):
         ret = "\t" * level + repr(self.id) + ": " + repr(self.customers) + "\n"
