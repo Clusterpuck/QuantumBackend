@@ -11,7 +11,7 @@ from route_solver.brute_force_solver import BruteForceSolver
 def new_main():
     delivery_list = JSON_to_pandas()
     #delivery_list2 = JSON_to_pandas2()
-    k = 1
+    k = 3
     split_threshold = 2
     dm = DistanceMatrixContext(SpatialMatrix())
     rs = RouteSolverContext(BruteForceSolver())
