@@ -1,8 +1,7 @@
-import math
 import numpy as np
 from sklearn.cluster import KMeans
 
-from pydantic_models import CartesianOrder, Order
+from pydantic_models import Order, OrderInput
 
 from route_optimisation.distance_matrix.distance_finder import DistanceFinder
 from route_optimisation.distance_matrix.cartesian_distance_finder import CartesianDistanceFinder
@@ -11,32 +10,31 @@ from route_optimisation.route_solver.route_solver import RouteSolver
 
 
 def orders_to_cartesian(
-    orders: list[Order],
-) -> list[CartesianOrder]:
+    orders: list[OrderInput],
+) -> list[Order]:
     """
-    Pre-compute cartesians for all orders. Required since lat/long's distortion
-    is not ideal for estimating distances in clustering and solving.
+    Pre-compute Cartesians for all orders.
+    
+    Lat/long's distortion is not ideal for estimating distances in clustering
+    and solving, so this is used in place of real traffic distances etc.
 
     Parameters
     ----------
-    orders: list of Order
-        List of structs containing Customer IDs, latitude and longitude
+    orders: list of OrderInput
+        The raw structs containing Customer IDs, latitude and longitude
 
     Returns
     -------
-    list of CartesianOrder
-        Contains additional x, y, z coordinates on a Cartesian plane
+    list of Order
+        Orders with additional x, y, z coordinate info
     """
-    r = 6371  # radius of the earth
+    r = 6371  # Radius of the earth
     cartesian_orders = []
-    for order in orders:
-        # Convert to cartesian
-        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.long)
-        r = 6371  # radius of the earth
 
-        # Add as extended object
+    for order in orders:
+        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.long)
         cartesian_orders.append(
-            CartesianOrder(
+            Order(
                 order_id=order.order_id,
                 lat=order.lat,
                 long=order.long,
@@ -45,13 +43,27 @@ def orders_to_cartesian(
                 z=r * np.sin(r_lat),
             )
         )
+
     return cartesian_orders
 
 
 # NOTE: Might be good to dedicate a strategy pattern to this in the future
-def cartesian_cluster(orders: list[CartesianOrder], k: int) -> np.ndarray:
+def cartesian_cluster(orders: list[Order], k: int) -> np.ndarray:
+    """
+    Clusters orders by their Cartesian distances, via K-means++.
+
+    Parameters
+    ----------
+    orders: list of Order
+        Contains all x, y, z points
+
+    Returns
+    -------
+    ndarray
+        1D, input-aligned array labelled by their cluster (eg. [0, 0, 1, 2, 0])
+    """
     points = [[o.x, o.y, o.z] for o in orders]
-    kmeans = KMeans(n_clusters=k, random_state=0, n_init=10).fit(points)
+    kmeans = KMeans(n_clusters=k, init="k-means++", random_state=0, n_init=10).fit(points)
     return kmeans.labels_
 
 
@@ -64,18 +76,18 @@ def flatten_list(deep_list):
             yield i
 
 
-# NOTE: Could be moved into a RouteSolver strategy in the future, primed with internal solvers
-# Something like RecursiveSolver(SpatialMatrixConverter(), BruteForceSolver()))
-# However, it is currently returning raw_tree, which is useful
-# Also would need to update other solvers with basic validation
+# NOTE: Could move into a RouteSolver strategy, primed with internal solvers
+# Init with RecursiveSolver(CartesianDistanceFinder(), BruteForceSolver()))
+# However, needs to change solver interface, extract precompute/validation, etc
+# So keep as a meta-solver for now...
 
 
 def solve_routes(
-    orders: list[CartesianOrder],
+    orders: list[Order],
     split_threshold: int,
     dm: DistanceFinder,
     rs: RouteSolver,
-) -> tuple[list[CartesianOrder | list], CartesianOrder, CartesianOrder]:
+) -> tuple[list[Order | list], Order, Order]:
     # Base case: Safe size to solve
     if len(orders) <= split_threshold:
         # Solve symmetric TSP (single point nodes)
@@ -85,7 +97,7 @@ def solve_routes(
         # TODO: Drop cost for now, might use later if strategised
 
         # Reorder order objects by solution
-        base_solution: list[CartesianOrder] = [orders[new_i] for new_i in solved_labels]
+        base_solution: list[Order] = [orders[new_i] for new_i in solved_labels]
         print(f"solved: {[o.order_id for o in base_solution]}")
 
         # Extract start/end orders for the parent's TSP convenience
@@ -121,10 +133,6 @@ def solve_routes(
     # ...And encode this into the solution tree via branch ordering
     solution_tree = [unsolved_branches[new_i] for new_i in solved_labels]
 
-    print(
-        f"stitch order: {solved_labels}, progress so far: {[o.order_id for o in flatten_list(solution_tree)]}"
-    )
-
     # Finally, spoof next TSP node by attaching route start/end data
     # Aka start coords of the spoofed route's start, and opposite case for end
     route_start = spoofed_nodes[solved_labels.index(0)][0]
@@ -137,26 +145,33 @@ def partition_vehicles(
     orders: list[Order],
     vehicles: int,
     split_threshold: int,
-    dm,  #: DistanceMatrixMaker,
+    dm: DistanceFinder,
     rs: RouteSolver,
-) -> tuple[list[list[CartesianOrder]], list[list[CartesianOrder | list]]]:
+) -> tuple[list[list[Order]], list[list[Order | list]]]:
+    """
+    Partition route into sub routes so they can be solved.
+
+    Parameters
+    ----------
+    orders : list of Orders
+        List of point allocations
+    split_threshold : int
+        How many clusters should exist for route partitioning
+    delivery_dictionary : pandas.DataFrame
+        Dataframes containing Customer IDs, latitude and longitude
+    distance_matrix : DistanceMatrixContext
+        The distance matrix building method
+    route_solver : RouteSolver
+        The route solving method
+
+    Returns
+    -------
+    vehicle_routes : list of routes
+        Unordered vehicle routes, each of which are ordered Orders
+    raw_tree : deep list of minimal routes
+        The clustering tree of routes, in solved order (ignoring vehicles)
+    """
     # The main entry wrapper
-
-    # Validate params
-    # The presence of pydantic means only range checking is required
-    seen_id = set()
-    for order in orders:
-        if order.order_id in seen_id:
-            raise ValueError("order_id must be unique")
-        elif not (-90 <= order.lat <= 90):
-            raise ValueError("lat must be between -90 and 90")
-        elif not (-180 <= order.long <= 180):
-            raise ValueError("long must be between -180 and 180")
-
-        seen_id.add(order.order_id)
-
-    # Pre-compute Cartesians
-    orders = orders_to_cartesian(orders)
 
     # Cluster into distinct vehicle routes
     vehicle_routes = []
@@ -234,7 +249,7 @@ if __name__ == "__main__":
     }
 
     #  Flip dict[list] to list[dict], then convert to list[Order]
-    orders = [Order(**dict(zip(dummy, t))) for t in zip(*dummy.values())]
+    orders = [OrderInput(**dict(zip(dummy, t))) for t in zip(*dummy.values())]
     print(orders)
 
     # Define strategies
@@ -275,9 +290,3 @@ if __name__ == "__main__":
 
 #     df = pd.DataFrame(dummy2)
 #     return df
-
-# k = 3
-# split_threshold = 2
-# dm = DistanceMatrixContext(SpatialMatrix())
-# rs = RouteSolverContext(BruteForceSolver())
-# optimise_route(None, k, split_threshold, dm, rs)

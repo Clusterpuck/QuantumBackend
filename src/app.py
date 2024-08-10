@@ -2,7 +2,7 @@ import random
 from fastapi import FastAPI, HTTPException
 
 from pydantic_models import Fact, RouteInput
-from main import partition_vehicles
+from main import orders_to_cartesian, partition_vehicles  # TODO: Dissolve main
 from route_optimisation.distance_matrix.cartesian_distance_finder import CartesianDistanceFinder
 from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
 
@@ -47,17 +47,18 @@ def add_fact(new_fact: Fact):
 
 @app.post("/generate-routes")
 async def generate_routes(request: RouteInput):
-    # Solve VRP
-    try:
-        optimal_route_per_vehicle, cluster_tree = partition_vehicles(
-            request.orders, request.num_vehicle, split_threshold, dm, rs
-        )
+    # Input should already be type/range validated by pydantic
 
-        # Cluster tree is an arbitrarily recursive list, ending in list[CartesianOrder]
-        # It's mainly for debugging, frankly
-        print(cluster_tree)
-    except ValueError as e:
-        # User sent bad data
-        raise HTTPException(status_code=400, detail=e)
+    # Pre-compute Cartesian approx, since it's very likely we will use it
+    orders = orders_to_cartesian(orders)
+
+    # Solve VRP
+    optimal_route_per_vehicle, cluster_tree = partition_vehicles(
+        request.orders, request.num_vehicle, split_threshold, dm, rs
+    )
+
+    # Cluster tree is an arbitrarily recursive list, ending in list[CartesianOrder]
+    # It's mainly for debugging, frankly
+    print(cluster_tree)
 
     return optimal_route_per_vehicle

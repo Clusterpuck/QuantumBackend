@@ -2,11 +2,11 @@ import numpy as np
 import math
 
 from route_optimisation.distance_matrix.distance_finder import DistanceFinder
-from pydantic_models import CartesianOrder
+from pydantic_models import Order
 
 
 class CartesianDistanceFinder(DistanceFinder):
-    def build_matrix(self, nodes: list[tuple[CartesianOrder, CartesianOrder]]) -> np.ndarray:
+    def build_matrix(self, nodes: list[tuple[Order, Order]]) -> np.ndarray:
         """
         Converts TSP nodes into a distance matrix. To create an asymmetric
         matrix, set the start and end coords per "node" to differ.
