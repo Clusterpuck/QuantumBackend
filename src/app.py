@@ -2,13 +2,9 @@ import random
 from fastapi import FastAPI, HTTPException
 
 from pydantic_models import Fact, RouteInput
-# from route_optimisation.distance_matrix.distance_matrix_context import (
-#     DistanceMatrixContext,
-# )
-# from route_optimisation.distance_matrix.spatial_matrix import SpatialMatrix
 from main import partition_vehicles
+from route_optimisation.distance_matrix.cartesian_distance_finder import CartesianDistanceFinder
 from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
-from route_optimisation.route_solver.route_solver_context import RouteSolverContext
 
 
 app = FastAPI()
@@ -16,9 +12,9 @@ app = FastAPI()
 facts = ["One", "Two", "Three", "Four", "Five"]
 
 split_threshold = 3  # Controls various city count tradeoffs in recursion
-dm = None  # DistanceMatrixContext(SpatialMatrix())
-rs = RouteSolverContext(BruteForceSolver())
-# Later app iterations might offer a way of swapping strategies at runtime
+dm = CartesianDistanceFinder()
+rs = BruteForceSolver()
+# Later app iterations will likely include the strategy in the request itself as optionals
 
 
 def get_total_facts():

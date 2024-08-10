@@ -1,6 +1,6 @@
 """Tree Node to structure data for route splitting"""
 
-from distance_matrix.distance_matrix import DistanceMatrix
+from route_optimisation.distance_matrix.distance_finder import DistanceFinder
 from route_solver.route_solver import RouteSolver
 
 class TreeNode:
@@ -128,7 +128,7 @@ class TreeNode:
         return ret
 
     def solve_node(self,
-                   distance_matrix: DistanceMatrix,
+                   distance_matrix: DistanceFinder,
                    route_solver: RouteSolver,
                    delivery_dictionary):
         """
