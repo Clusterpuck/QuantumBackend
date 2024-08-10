@@ -50,11 +50,11 @@ async def generate_routes(request: RouteInput):
     # Input should already be type/range validated by pydantic
 
     # Pre-compute Cartesian approx, since it's very likely we will use it
-    orders = orders_to_cartesian(orders)
+    new_orders = orders_to_cartesian(request.orders)
 
     # Solve VRP
     optimal_route_per_vehicle, cluster_tree = partition_vehicles(
-        request.orders, request.num_vehicle, split_threshold, dm, rs
+        new_orders, request.num_vehicle, split_threshold, dm, rs
     )
 
     # Cluster tree is an arbitrarily recursive list, ending in list[CartesianOrder]
