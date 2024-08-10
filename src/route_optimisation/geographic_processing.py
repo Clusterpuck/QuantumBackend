@@ -2,6 +2,8 @@
 
 import numpy as np
 
+from pydantic_models import Order
+
 def geographic_array(delivery_list):
     """
     Grab the longitude and latitude from delivery_list
@@ -39,7 +41,7 @@ def geographic_to_cartesian(geo_array):
         cartesian_array[index] = cartesian_coord
     return cartesian_array
 
-def get_cartesian(lat,lon):
+def get_cartesian(lat: float, lon: float):
     """
     Get cartesian coordinate for a latitude and longitude point
 
@@ -62,7 +64,7 @@ def get_cartesian(lat,lon):
     z = r * np.sin(lat)
     return np.array((x,y,z))
 
-def delivery_list_to_cartesian(delivery_list):
+def orders_to_cartesian(orders: list[Order]) -> np.ndarray:
     """
     Convert a delivery list to a cartesian array
 
@@ -76,7 +78,7 @@ def delivery_list_to_cartesian(delivery_list):
     cartesian_array: numpy.ndarray
         Contains x,y,z coordinate on cartesian plane
     """
-    geo_array = geographic_array(delivery_list)
+    geo_array = geographic_array(orders)
     cartesian_array = geographic_to_cartesian(geo_array)
     #print(cartesian_array)
     return cartesian_array

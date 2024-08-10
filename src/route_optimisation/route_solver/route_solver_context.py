@@ -1,5 +1,4 @@
-from distance_matrix.distance_matrix import DistanceMatrix
-from route_solver.route_solver import RouteSolver
+from route_optimisation.route_solver.route_solver import RouteSolver
 
 class RouteSolverContext:
     def __init__(self, strategy: RouteSolver):

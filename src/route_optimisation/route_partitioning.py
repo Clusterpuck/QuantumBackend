@@ -1,6 +1,6 @@
 import numpy as np
-from geographic_processing import delivery_list_to_cartesian, get_cartesian
-from customer_allocation.customer_assignment import k_means, k_means2
+from geographic_processing import orders_to_cartesian
+from customer_allocation.customer_assignment import k_means
 from tree_node import TreeNode
 import pandas as pd
 from collections import OrderedDict
@@ -37,7 +37,7 @@ def partition_routes(allocation_array, split_threshold, delivery_dictionary,
     print("new_array", new_array)
     return tree
 
-def partition(allocation_array, delivery_list, cluster_number, new_array, split_threshold, 
+def partition(allocation_array: np.ndarray, delivery_list, cluster_number, new_array, split_threshold, 
               new_clusters=None, cluster_tree: TreeNode=None, dm=None, rs=None):
     """
     Recursively partition routes until every node is solved
@@ -161,7 +161,7 @@ def cluster_node(allocation_array, delivery_dictionary, cluster, split_threshold
         new allocation of nodes after split
     """
     sub_list = create_sub_list(allocation_array, delivery_dictionary, cluster)
-    cartestian_array = delivery_list_to_cartesian(sub_list)
+    cartestian_array = orders_to_cartesian(sub_list)
 
     # If greater than one point
     if cartestian_array.shape[0] > 1:
