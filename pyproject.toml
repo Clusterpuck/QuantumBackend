@@ -1,0 +1,2 @@
+[tool.pytest.ini_options]
+pythonpath = ["src"]  # Extends pytest's module search to handle src layout

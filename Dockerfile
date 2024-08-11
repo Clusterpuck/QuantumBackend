@@ -1,12 +1,13 @@
 # Use the official Python image as the base image
-FROM python:3.9
+FROM python:3.11.9
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH=/app/src
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /src
 
 # Copy the dependencies file to the working directory
 COPY requirements.txt .

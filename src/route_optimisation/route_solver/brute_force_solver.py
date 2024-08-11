@@ -1,10 +1,10 @@
 from itertools import permutations
-from route_solver.route_solver import RouteSolver
+from route_optimisation.route_solver.route_solver import RouteSolver
 import numpy as np
 
 class BruteForceSolver(RouteSolver):
 
-    def solve(self, distance_matrix: np.array):
+    def solve(self, distance_matrix: np.ndarray) -> tuple[list[int], int]:
         n = len(distance_matrix)
         index = list(range(n))
         all_routes = permutations(index)
@@ -16,7 +16,7 @@ class BruteForceSolver(RouteSolver):
             if current_cost < lowest_cost:
                 lowest_cost = current_cost
                 best_route = route
-        return best_route, current_cost
+        return list(best_route), current_cost
 
     def __get_route_cost(self, route, distance_matrix):
         cost = 0

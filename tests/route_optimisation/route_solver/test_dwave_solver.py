@@ -2,7 +2,6 @@ from typing import Any
 import dimod
 import numpy as np
 import pytest
-import sys
 
 from route_optimisation.route_solver.dwave_solver import DWaveSolver
 
