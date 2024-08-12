@@ -119,4 +119,7 @@ async def generate_routes(request: RouteInput):
     # TODO: Probably wanna remove this in final prod?
     display_cluster_tree(cluster_tree, 0)
 
-    return optimal_route_per_vehicle
+    # Extract just the IDs, keeping double nested shape
+    output = [[o.order_id for o in v] for v in optimal_route_per_vehicle]
+
+    return output
