@@ -11,6 +11,7 @@ WORKDIR /src
 
 # Copy the dependencies file to the working directory
 COPY requirements.txt .
+COPY ./src /app/src
 
 # Install the ODBC driver for SQL Server
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
@@ -28,7 +29,7 @@ COPY . .
 # Command options to run the application
 
 # Line to use when implemented with gunicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # For a non-gunicorn implementation
 # CMD ["python3", "app2.py"]
