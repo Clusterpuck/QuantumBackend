@@ -12,7 +12,7 @@ class OrderInput(BaseModel):
     # Might need the alias generator to cast to snake_case
     order_id: int = Field(..., ge=0)
     lat: float = Field(..., ge=-90, le=90)
-    long: float = Field(..., ge=-180, le=180)
+    lon: float = Field(..., ge=-180, le=180)
 
 
 class Order(OrderInput):  # Internal

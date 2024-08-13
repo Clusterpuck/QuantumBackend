@@ -43,12 +43,12 @@ def orders_to_cartesian(
     cartesian_orders = []
 
     for order in orders:
-        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.long)
+        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.lon)
         cartesian_orders.append(
             Order(
                 order_id=order.order_id,
                 lat=order.lat,
-                long=order.long,
+                lon=order.lon,
                 x=r * np.cos(r_lat) * np.cos(r_lon),
                 y=r * np.cos(r_lat) * np.sin(r_lon),
                 z=r * np.sin(r_lat),
