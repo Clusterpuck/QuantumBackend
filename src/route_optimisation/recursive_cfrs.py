@@ -89,18 +89,23 @@ class RecursiveCFRS:
         """
         # Base case: Safe size to solve
         if len(orders) <= self.__split_threshold:
-            # Solve symmetric TSP (single point nodes)
-            nodes = [(o, o) for o in orders]
-            distance_matrix = self.__dm.build_matrix(nodes)
-            solved_labels, _ = self.__rs.solve(distance_matrix)
-            # TODO: Drop cost for now, might use later if strategised
+            if len(orders) == 1:  # Trivial case
+                # Also saves some API calls for some dm/rs
+                base_solution = orders
+                route_start = route_end = orders[0]
+            else:
+                # Solve symmetric TSP (single point nodes)
+                nodes = [(o, o) for o in orders]
+                distance_matrix = self.__dm.build_matrix(nodes)
+                solved_labels, _ = self.__rs.solve(distance_matrix)
+                # TODO: Drop cost for now, might use later if strategised
 
-            # Reorder order objects by solution
-            base_solution: list[Order] = [orders[new_i] for new_i in solved_labels]
+                # Reorder order objects by solution
+                base_solution: list[Order] = [orders[new_i] for new_i in solved_labels]
 
-            # Extract start/end orders for the parent's TSP convenience
-            route_start = base_solution[0]
-            route_end = base_solution[-1]
+                # Extract start/end orders for the parent's TSP convenience
+                route_start = base_solution[0]
+                route_end = base_solution[-1]
 
             return base_solution, route_start, route_end
 

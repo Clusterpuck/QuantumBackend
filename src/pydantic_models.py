@@ -1,6 +1,6 @@
 # Let these act as both API validation and system-wide models
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Fact(BaseModel):
@@ -22,8 +22,22 @@ class Order(OrderInput):  # Internal
     z: float
 
 
+class ClusterConfig(BaseModel):
+    type: str
+
+    # Clustering params depend heavily on the type, so keep all fields
+    model_config = ConfigDict(extra="allow")
+
+
+class SolverConfig(BaseModel):
+    type: str
+    distance: str
+
+
 class RouteInput(BaseModel):
-    num_vehicle: int = Field(..., ge=1)
+    vehicle_cluster_config: ClusterConfig
+    subcluster_config: ClusterConfig
+    solver_config: SolverConfig
     orders: list[OrderInput]
 
     @field_validator("orders")
