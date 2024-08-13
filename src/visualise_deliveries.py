@@ -5,12 +5,16 @@ import location_converter.location_converter as lc
 from pydantic_models import RouteInput
 
 def plot_graph(locations_path, routes_path):
-    locations, routes = reformat(locations_path,routes_path)
-    lats, longs = lc.locations_to_2D(locations.orders)
+    _, _, locations, routes = reformat(locations_path,routes_path)
 
+    lats = [location.lat for location in locations.orders]
+    longs = [location.long for location in locations.orders]
+
+    lats, longs = lc.geographic_to_2D(lats, longs)
+    # For route drawing
     orders_dict = {order.order_id: {'lat': order.lat, 'long': order.long} for order in locations.orders}
 
-    print(orders_dict)
+    #print(orders_dict)
     plt.figure(figsize=(10, 6))
     plt.scatter(longs, lats, color='blue', marker='o')
 
@@ -40,10 +44,12 @@ def reformat(locations_path, routes_path):
     with open(locations_path, 'r', encoding="utf-8") as file:
         locations = json.load(file)
     locations = RouteInput(**locations)
+    lats = [location.lat for location in locations.orders]
+    longs = [location.long for location in locations.orders]
 
     with open(routes_path, 'r', encoding="utf-8") as file:
         routes = json.load(file)
-    return locations, routes
+    return lats, longs, locations, routes
     
 locations = 'src/data/Locations_local_test.json'
 routes = 'src/data/Locations_local_test_route.json'
