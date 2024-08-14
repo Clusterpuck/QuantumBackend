@@ -1,5 +1,6 @@
 import json
 import sys
+import os
 import matplotlib.pyplot as plt
 import location_converter.location_converter as lc
 
@@ -8,11 +9,11 @@ from pydantic_models import RouteInput
 # python src\visualise_deliveries.py "src\data\Locations_local_test.json" "src\data\Locations_local_test_route.json"
 
 def plot_graph():
-    locations_path = "src\\data\\" + sys.argv[1]
-    routes_path = "src\\data\\" + sys.argv[2]
+    locations_path = os.path.join("src", "data", sys.argv[1])
+    routes_path = os.path.join("src", "data", sys.argv[2])
 
     lats, longs, locations, routes = reformat(locations_path,routes_path)
-    orders = {order.order_id: {'lat': order.lat, 'long': order.long} for order in locations.orders}
+    orders = {order.order_id: {'lat': order.lat, 'long': order.lon} for order in locations.orders}
 
     #print(orders_dict)
     plt.figure(figsize=(10, 6))
@@ -32,7 +33,7 @@ def reformat(locations_path, routes_path):
 
     locations = RouteInput(**locations)
     lats = [location.lat for location in locations.orders]
-    longs = [location.long for location in locations.orders]
+    longs = [location.lon for location in locations.orders]
     lats, longs = lc.geographic_to_2d(lats, longs)
     
     return lats, longs, locations, routes
