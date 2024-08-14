@@ -8,7 +8,7 @@ Arguments
 
 Example:
 
-When in src directory (cd src),
+When in src directory (cd src), assuming you have a src/data folder containing all the objects, call
 - python3 visualise_deliveries.py "Locations.json" "Locations_route.json"
 """
 
@@ -31,7 +31,7 @@ def plot_graph():
 
     Example:
 
-    When in src directory (cd src),
+    When in src directory (cd src), assuming you have a src/data folder containing all the objects, call
     - python3 visualise_deliveries.py "Locations.json" "Locations_route.json"
     """
     locations_path = os.path.join("data", sys.argv[1])
