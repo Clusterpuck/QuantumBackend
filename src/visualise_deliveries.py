@@ -8,7 +8,8 @@ Arguments
 
 Example:
 
-python3 src/visualise_deliveries.py "Locations.json" "Locations_route.json"
+When in src directory (cd src),
+- python3 visualise_deliveries.py "Locations.json" "Locations_route.json"
 """
 
 import json
@@ -18,15 +19,25 @@ import matplotlib.pyplot as plt
 import er_projection.er_projection as erp
 
 from pydantic_models import RouteInput
-# Run with
-# python src\visualise_deliveries.py "src\data\Locations_local_test.json" "src\data\Locations_local_test_route.json"
 
 def plot_graph():
-    locations_path = os.path.join("src", "data", sys.argv[1])
-    routes_path = os.path.join("src", "data", sys.argv[2])
+    """
+    Visualise locations and routes
+
+    Arguments
+    ---------
+    1. The name of the JSON file in src/data containing RouteInput data
+    2. the name of the JSON file in src/data containing the optimal routes per vehicle
+
+    Example:
+
+    When in src directory (cd src),
+    - python3 visualise_deliveries.py "Locations.json" "Locations_route.json"
+    """
+    locations_path = os.path.join("data", sys.argv[1])
+    routes_path = os.path.join("data", sys.argv[2])
 
     lats, longs, orders, routes = reformat(locations_path,routes_path)
-    #orders = {order.order_id: {'lat': order.lat, 'long': order.lon} for order in locations.orders}
 
     plt.figure(figsize=(10, 6))
     plt.scatter(longs, lats, color='blue', marker='o')
@@ -47,51 +58,76 @@ def reformat(locations_path, routes_path):
     locations_path : str
         The name of the locations file at src/data
         The file should be in the format of RouteInput
-    routes_path : list of floats
+    routes_path : routes
         the name of the routes file at src/data
-        The file should be a list of a list of ordered OrderIDs
-
+        The file should be a list of lists containing ordered Order_ids
 
     Returns
     -------
     lats : np.array
         List of latitudes for orders 
-    longs : list of floats
+    longs : np.array
         List of latitudes for orders
+    orders : dict[int, dict[str,float]]
+        Key represents order_id
+        Value (inner dictionary) is in the format of:
+            lat: float
+            lon: float
+        Example: {16: {'lat': -31.899364, 'lon': 115.801288}
+    routes : list[list[int]]
+        Contains a list of lists of routes in sorted order
+        Outer lists contains the list of routes
+        Inner list contains the orders in sorted order
     """
-    with open(locations_path, 'r') as file:
+    with open(locations_path, 'r', encoding='utf-8') as file:
         locations = json.load(file)
-    with open(routes_path, 'r') as file:
+    with open(routes_path, 'r', encoding='utf-8') as file:
         routes = json.load(file)
 
     locations = RouteInput(**locations)
     lats = [location.lat for location in locations.orders]
     longs = [location.lon for location in locations.orders]
     lats, longs = erp.equi_rect_project(lats, longs)
-    orders = {order.order_id: {'lat': order.lat, 'long': order.lon} for order in locations.orders}
+    orders = {order.order_id: {'lat': order.lat, 'lon': order.lon} for order in locations.orders}
 
-    print(type(lats))
-    print(type(longs))
-    print(type(locations))
-    print(type(routes))
-    
     return lats, longs, orders, routes
 
 def __add_lines(routes, orders_dict):
+    """
+    Adds arrows for each edge in routes list
+
+    Parameters
+    ----------
+    routes : list[list[int]]
+        Contains a list of lists of routes in sorted order
+        Outer lists contains the list of routes
+        Inner list contains the orders in sorted order
+    orders_dict : dict[int, dict[str,float]]
+        Key represents order_id
+        Value (inner dictionary) is in the format of:
+            lat: float
+            lon: float
+        Example: {16: {'lat': -31.899364, 'lon': 115.801288}
+    """
+    start_longs = []
+    start_lat = []
+    end_longs = []
+    end_lats = []
     for route in routes:
         for i in range(len(route) - 1):
             start_id = route[i]
             end_id = route[i + 1]
 
-            start_long = orders_dict[start_id]['long']
-            start_lat = orders_dict[start_id]['lat']
-            end_long = orders_dict[end_id]['long']
-            end_lat = orders_dict[end_id]['lat']
+            start_longs.append(orders_dict[start_id]['lon'])
+            start_lat.append(orders_dict[start_id]['lat'])
+            end_longs.append(orders_dict[end_id]['lon'])
+            end_lats.append(orders_dict[end_id]['lat'])
 
-            start_lats, start_longs = erp.equi_rect_project([start_lat], [start_long])
-            end_lats, end_longs = erp.equi_rect_project([end_lat], [end_long])
+    start_lats, start_longs = erp.equi_rect_project(start_lat, start_longs)
+    end_lats, end_longs = erp.equi_rect_project(end_lats, end_longs)
 
-            plt.annotate('', xy=(end_longs[0], end_lats[0]), xytext=(start_longs[0], start_lats[0]),
-                         arrowprops=dict(facecolor='red', shrink=0.15, headlength=7, headwidth=7, width=3))
-    
+    for i in range(len(start_lats)):
+        plt.annotate('', xy=(end_longs[i], end_lats[i]), xytext=(start_longs[i], start_lats[i]),
+                 arrowprops=dict(facecolor='red', shrink=0.15, headlength=7, headwidth=7, width=3))
+
 plot_graph()
