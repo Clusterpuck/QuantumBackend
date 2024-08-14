@@ -1,7 +1,7 @@
 """Transform latitude and longitude using equirectangular projection"""
 import numpy as np
 
-def geographic_to_2d(latitudes: list, longitudes: list) -> tuple[np.array, np.array]:
+def equi_rect_project(latitudes: list, longitudes: list) -> tuple[np.array, np.array]:
     """
     Use an approximation of equirectangular projection to map latitude and longitude
     to a 2D plane.
@@ -15,10 +15,10 @@ def geographic_to_2d(latitudes: list, longitudes: list) -> tuple[np.array, np.ar
 
     Returns
     -------
-    latitudes : list of floats
-        List of latitudes for orders 
-    longitudes : list of floats
-        List of latitudes for orders
+    latitudes : ndarray
+        1D, contains array of projected latitudes
+    longitudes : ndarray
+        1D, contains array of projected longitudes
     """
     latitudes = np.array(latitudes)
     longitudes = np.array(longitudes)
@@ -32,7 +32,7 @@ def geographic_to_2d(latitudes: list, longitudes: list) -> tuple[np.array, np.ar
     latitudes_radians = np.radians(latitudes)
 
     # Apply equirectangular projection
-    x = r * longitudes_radians * np.cos(center_latitude_radians)
-    y = r * latitudes_radians
+    longitudes = r * longitudes_radians * np.cos(center_latitude_radians)
+    latitudes = r * latitudes_radians
 
-    return y, x
+    return latitudes, longitudes
