@@ -1,16 +1,23 @@
 import random
+from fastapi.responses import JSONResponse
 import numpy as np
 from fastapi import FastAPI, HTTPException
 
+from distance_factory import DistanceFactory
 from pydantic_models import Fact, RouteInput, Order, OrderInput
 from route_optimisation.recursive_cfrs import RecursiveCFRS
-from route_optimisation.distance_matrix.cartesian_distance_finder import CartesianDistanceFinder
-from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
+from solver_factory import SolverFactory
 
 
 app = FastAPI()
 
 facts = ["One", "Two", "Three", "Four", "Five"]
+
+# Simple factories
+# This relocates and bundles specialised validation/config logic
+# clustering_factory = ClusteringFactory()
+distance_factory = DistanceFactory()
+solver_factory = SolverFactory()
 
 
 # Helper functions
@@ -23,7 +30,7 @@ def orders_to_cartesian(
 ) -> list[Order]:
     """
     Pre-compute Cartesians for all orders.
-    
+
     Lat/long's distortion is not ideal for estimating distances in clustering
     and solving, so this is used in place of real traffic distances etc.
 
@@ -43,12 +50,12 @@ def orders_to_cartesian(
     cartesian_orders = []
 
     for order in orders:
-        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.long)
+        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.lon)
         cartesian_orders.append(
             Order(
                 order_id=order.order_id,
                 lat=order.lat,
-                long=order.long,
+                lon=order.lon,
                 x=r * np.cos(r_lat) * np.cos(r_lon),
                 y=r * np.cos(r_lat) * np.sin(r_lon),
                 z=r * np.sin(r_lat),
@@ -101,22 +108,27 @@ async def generate_routes(request: RouteInput):
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
-    dm = CartesianDistanceFinder()
-    rs = BruteForceSolver()
+    try:
+        # vehicle_clustering = clustering_factory.create(request.vehicle_cluster_config)
+        # subclustering = clustering_factory.create(request.subcluster_config)
+        dm = distance_factory.create(request.solver_config.distance)
+        rs = solver_factory.create(request.solver_config.type)
+    except ValueError as e:
+        # Should be safe to relay these back to client
+        return JSONResponse(status_code=400, content={"message": str(e)})
     split_threshold = 3
     vrp_solver = RecursiveCFRS(dm, rs, split_threshold)
-    # These params may also be passed in in the future
 
     # Pre-compute Cartesian approx, since it's very likely we will use it
     new_orders = orders_to_cartesian(request.orders)
 
     # Solve VRP
     optimal_route_per_vehicle, cluster_tree = vrp_solver.solve_vrp(
-        new_orders, request.num_vehicle
+        new_orders, request.vehicle_cluster_config.k
     )
+    # TODO: The cluster rework will handle vehicle count k instead, once done
 
     # Print clustering results to console
-    # TODO: Probably wanna remove this in final prod?
     display_cluster_tree(cluster_tree, 0)
 
     # Extract just the IDs, keeping double nested shape

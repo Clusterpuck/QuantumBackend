@@ -19,12 +19,12 @@ def orders_to_cartesian(
     cartesian_orders = []
 
     for order in orders:
-        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.long)
+        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.lon)
         cartesian_orders.append(
             Order(
                 order_id=order.order_id,
                 lat=order.lat,
-                long=order.long,
+                lon=order.lon,
                 x=r * np.cos(r_lat) * np.cos(r_lon),
                 y=r * np.cos(r_lat) * np.sin(r_lon),
                 z=r * np.sin(r_lat),
@@ -56,7 +56,7 @@ def assert_cluster_trees(
         # Check properties are equal via ducktype (and floats approx equal)
         assert item1["order_id"] == item2["order_id"]
         assert item1["lat"] == pytest.approx(item2["lat"])
-        assert item1["long"] == pytest.approx(item2["long"])
+        assert item1["lon"] == pytest.approx(item2["lon"])
         assert item1["x"] == pytest.approx(item2["x"])
         assert item1["y"] == pytest.approx(item2["y"])
         assert item1["z"] == pytest.approx(item2["z"])
@@ -79,7 +79,7 @@ def dummy_orders() -> list[Order]:
             -20,
             -10,
         ],
-        "long": [
+        "lon": [
             115.801288,
             115.886444,
             115.870573,
@@ -108,7 +108,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 16,
                 "lat": -31.899364,
-                "long": 115.801288,
+                "lon": 115.801288,
                 "x": -2354.2031043853,
                 "y": 4869.623654780412,
                 "z": -3366.620591053539,
@@ -116,7 +116,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 15,
                 "lat": -31.900399,
-                "long": 115.79983,
+                "lon": 115.79983,
                 "x": -2354.052717921549,
                 "y": 4869.628806467785,
                 "z": -3366.7182965709057,
@@ -124,7 +124,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 14,
                 "lat": -32.000879,
-                "long": 115.920247,
+                "lon": 115.920247,
                 "x": -2361.6973871630744,
                 "y": 4859.352837709582,
                 "z": -3376.19852054214,
@@ -132,7 +132,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 12,
                 "lat": -32.010274,
-                "long": 115.886444,
+                "lon": 115.886444,
                 "x": -2358.588355482576,
                 "y": 4860.24720649239,
                 "z": -3377.0844024342828,
@@ -140,7 +140,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 11,
                 "lat": -32.04065,
-                "long": 115.905166,
+                "lon": 115.905166,
                 "x": -2359.39384013173,
                 "y": 4857.865073594457,
                 "z": -3379.948022366553,
@@ -148,7 +148,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 13,
                 "lat": -32.090316,
-                "long": 115.870573,
+                "lon": 115.870573,
                 "x": -2355.1811185798524,
                 "y": 4856.650641028967,
                 "z": -3384.628110986181,
@@ -158,7 +158,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 17,
                 "lat": -20,
-                "long": 20,
+                "lon": 20,
                 "x": 5625.734573555505,
                 "y": 2047.599930656471,
                 "z": -2179.0103331278356,
@@ -166,7 +166,7 @@ def expected_orders() -> list[list[dict]]:
             {
                 "order_id": 18,
                 "lat": -10,
-                "long": 10,
+                "lon": 10,
                 "x": 6178.890843513511,
                 "y": 1089.5051665639178,
                 "z": -1106.312539916013,
@@ -183,7 +183,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 16,
                 "lat": -31.899364,
-                "long": 115.801288,
+                "lon": 115.801288,
                 "x": -2354.2031043853,
                 "y": 4869.623654780412,
                 "z": -3366.620591053539,
@@ -191,7 +191,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 15,
                 "lat": -31.900399,
-                "long": 115.79983,
+                "lon": 115.79983,
                 "x": -2354.052717921549,
                 "y": 4869.628806467785,
                 "z": -3366.7182965709057,
@@ -199,7 +199,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 14,
                 "lat": -32.000879,
-                "long": 115.920247,
+                "lon": 115.920247,
                 "x": -2361.6973871630744,
                 "y": 4859.352837709582,
                 "z": -3376.19852054214,
@@ -207,7 +207,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 12,
                 "lat": -32.010274,
-                "long": 115.886444,
+                "lon": 115.886444,
                 "x": -2358.588355482576,
                 "y": 4860.24720649239,
                 "z": -3377.0844024342828,
@@ -215,7 +215,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 11,
                 "lat": -32.04065,
-                "long": 115.905166,
+                "lon": 115.905166,
                 "x": -2359.39384013173,
                 "y": 4857.865073594457,
                 "z": -3379.948022366553,
@@ -223,7 +223,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 13,
                 "lat": -32.090316,
-                "long": 115.870573,
+                "lon": 115.870573,
                 "x": -2355.1811185798524,
                 "y": 4856.650641028967,
                 "z": -3384.628110986181,
@@ -233,7 +233,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 17,
                 "lat": -20,
-                "long": 20,
+                "lon": 20,
                 "x": 5625.734573555505,
                 "y": 2047.599930656471,
                 "z": -2179.0103331278356,
@@ -241,7 +241,7 @@ def expected_vrp() -> list[list[dict]]:
             {
                 "order_id": 18,
                 "lat": -10,
-                "long": 10,
+                "lon": 10,
                 "x": 6178.890843513511,
                 "y": 1089.5051665639178,
                 "z": -1106.312539916013,
@@ -260,7 +260,7 @@ def expected_tree() -> list[list[dict]]:
                 {
                     "order_id": 16,
                     "lat": -31.899364,
-                    "long": 115.801288,
+                    "lon": 115.801288,
                     "x": -2354.2031043853,
                     "y": 4869.623654780412,
                     "z": -3366.620591053539,
@@ -268,7 +268,7 @@ def expected_tree() -> list[list[dict]]:
                 {
                     "order_id": 15,
                     "lat": -31.900399,
-                    "long": 115.79983,
+                    "lon": 115.79983,
                     "x": -2354.052717921549,
                     "y": 4869.628806467785,
                     "z": -3366.7182965709057,
@@ -278,7 +278,7 @@ def expected_tree() -> list[list[dict]]:
                 {
                     "order_id": 14,
                     "lat": -32.000879,
-                    "long": 115.920247,
+                    "lon": 115.920247,
                     "x": -2361.6973871630744,
                     "y": 4859.352837709582,
                     "z": -3376.19852054214,
@@ -286,7 +286,7 @@ def expected_tree() -> list[list[dict]]:
                 {
                     "order_id": 12,
                     "lat": -32.010274,
-                    "long": 115.886444,
+                    "lon": 115.886444,
                     "x": -2358.588355482576,
                     "y": 4860.24720649239,
                     "z": -3377.0844024342828,
@@ -294,7 +294,7 @@ def expected_tree() -> list[list[dict]]:
                 {
                     "order_id": 11,
                     "lat": -32.04065,
-                    "long": 115.905166,
+                    "lon": 115.905166,
                     "x": -2359.39384013173,
                     "y": 4857.865073594457,
                     "z": -3379.948022366553,
@@ -304,7 +304,7 @@ def expected_tree() -> list[list[dict]]:
                 {
                     "order_id": 13,
                     "lat": -32.090316,
-                    "long": 115.870573,
+                    "lon": 115.870573,
                     "x": -2355.1811185798524,
                     "y": 4856.650641028967,
                     "z": -3384.628110986181,
@@ -315,7 +315,7 @@ def expected_tree() -> list[list[dict]]:
             {
                 "order_id": 17,
                 "lat": -20,
-                "long": 20,
+                "lon": 20,
                 "x": 5625.734573555505,
                 "y": 2047.599930656471,
                 "z": -2179.0103331278356,
@@ -323,7 +323,7 @@ def expected_tree() -> list[list[dict]]:
             {
                 "order_id": 18,
                 "lat": -10,
-                "long": 10,
+                "lon": 10,
                 "x": 6178.890843513511,
                 "y": 1089.5051665639178,
                 "z": -1106.312539916013,
