@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 import numpy as np
 from fastapi import FastAPI, HTTPException
 
+from clusterer_factory import ClustererFactory
 from distance_factory import DistanceFactory
 from pydantic_models import Fact, RouteInput, Order, OrderInput
 from route_optimisation.recursive_cfrs import RecursiveCFRS
@@ -15,7 +16,7 @@ facts = ["One", "Two", "Three", "Four", "Five"]
 
 # Simple factories
 # This relocates and bundles specialised validation/config logic
-# clustering_factory = ClusteringFactory()
+clusterer_factory = ClustererFactory()
 distance_factory = DistanceFactory()
 solver_factory = SolverFactory()
 
@@ -109,24 +110,31 @@ async def generate_routes(request: RouteInput):
 
     # Since requests should be stateless and unshared, set up new solvers
     try:
-        # vehicle_clustering = clustering_factory.create(request.vehicle_cluster_config)
-        # subclustering = clustering_factory.create(request.subcluster_config)
-        dm = distance_factory.create(request.solver_config.distance)
-        rs = solver_factory.create(request.solver_config.type)
+        vehicle_clusterer = clusterer_factory.create(request.vehicle_cluster_config)
+        subclusterer = clusterer_factory.create(request.subcluster_config)
+        distance_finder = distance_factory.create(request.solver_config.distance)
+        route_solver = solver_factory.create(request.solver_config.type)
     except ValueError as e:
         # Should be safe to relay these back to client
         return JSONResponse(status_code=400, content={"message": str(e)})
-    split_threshold = 3
-    vrp_solver = RecursiveCFRS(dm, rs, split_threshold)
+    vrp_solver = RecursiveCFRS(
+        vehicle_clusterer,
+        subclusterer,
+        distance_finder,
+        route_solver,
+        request.solver_config.max_solve_size,
+    )
+
+    # TODO: Need to think about how to best validate that recursion always ends
+    # when for split threshold on arbitrary clusterers. Not sure if there is a
+    # good way to pass that data around?
 
     # Pre-compute Cartesian approx, since it's very likely we will use it
     new_orders = orders_to_cartesian(request.orders)
 
     # Solve VRP
-    optimal_route_per_vehicle, cluster_tree = vrp_solver.solve_vrp(
-        new_orders, request.vehicle_cluster_config.k
-    )
-    # TODO: The cluster rework will handle vehicle count k instead, once done
+    optimal_route_per_vehicle, cluster_tree = vrp_solver.solve_vrp(new_orders)
+    # Note: split threshold is a distinct property from k
 
     # Print clustering results to console
     display_cluster_tree(cluster_tree, 0)

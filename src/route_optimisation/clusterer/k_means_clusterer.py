@@ -35,9 +35,13 @@ class KMeansClusterer(Clusterer):
         Raises
         ------
         ValueError
+            k less than 1.
+        ValueError
             Invalid value of duplicate_clusters.
         """
-        if duplicate_clusters not in ("allow", "raise", "split"):
+        if k < 1:
+            raise ValueError("k must be 1 or greater.")
+        elif duplicate_clusters not in ("allow", "raise", "split"):
             raise ValueError("duplicate_clusters must be 'allow', 'raise', or 'split'.")
 
         self.__k = k
@@ -57,7 +61,6 @@ class KMeansClusterer(Clusterer):
         ----------
         labels: ndarray
             Cluster labels after k-means, ranging 0 to k-1 but missing values.
-        
         k : int
             Number of clusters k-means was supposed to (but failed) to find.
 

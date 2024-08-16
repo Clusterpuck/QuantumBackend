@@ -135,6 +135,10 @@ def test_cluster(dummy_orders: list[Order]) -> None:
 
 
 def test_configs(dummy_orders: list[Order]) -> None:
+    # Check that constructor k validation can be tripped
+    with pytest.raises(ValueError):
+        KMeansClusterer(0)
+
     # Check that constructor literal validation can be tripped
     with pytest.raises(ValueError):
         KMeansClusterer(2, allow_less_data=True, duplicate_clusters="text")

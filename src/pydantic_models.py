@@ -23,6 +23,7 @@ class Order(OrderInput):  # Internal
 
 
 class ClusterConfig(BaseModel):
+    # Everything related to the clusterer and its needs
     type: str
 
     # Clustering params depend heavily on the type, so keep all fields
@@ -30,14 +31,19 @@ class ClusterConfig(BaseModel):
 
 
 class SolverConfig(BaseModel):
+    # Everything related to the solver and its needs
     type: str
     distance: str
+    max_solve_size: int = Field(default=5, ge=1)
+    # TODO: Remove default
+    # Default is a temp fix while waiting for change over
 
 
 class RouteInput(BaseModel):
     vehicle_cluster_config: ClusterConfig
     subcluster_config: ClusterConfig
     solver_config: SolverConfig
+
     orders: list[OrderInput]
 
     @field_validator("orders")
