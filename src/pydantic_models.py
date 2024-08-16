@@ -34,9 +34,7 @@ class SolverConfig(BaseModel):
     # Everything related to the solver and its needs
     type: str
     distance: str
-    max_solve_size: int = Field(default=5, ge=1)
-    # TODO: Remove default
-    # Default is a temp fix while waiting for change over
+    max_solve_size: int = Field(ge=1)
 
 
 class RouteInput(BaseModel):
