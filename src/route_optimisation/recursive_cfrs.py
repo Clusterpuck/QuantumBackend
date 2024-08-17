@@ -1,62 +1,50 @@
 # NOTE: Might unify under a VRPSolver interface in the future for similar heuristics
 
 import numpy as np
-from sklearn.cluster import KMeans
 
 from pydantic_models import Order
+from route_optimisation.clusterer.clusterer import Clusterer
 from route_optimisation.distance_matrix.distance_finder import DistanceFinder
 from route_optimisation.route_solver.route_solver import RouteSolver
 
 
 class RecursiveCFRS:
 
-    def __init__(self, dm: DistanceFinder, rs: RouteSolver, split_threshold: int):
+    def __init__(
+        self,
+        vehicle_clusterer: Clusterer,
+        subclusterer: Clusterer,
+        distance_finder: DistanceFinder,
+        route_solver: RouteSolver,
+        max_solve_size: int,
+    ):
         """
         Inits an VRP solver that uses a cluster-first route-second heuristic.
         The routing half allows recursive subclustering for oversize clusters.
 
-        TODO: May allow different clustering options for the initial vehicle
-        partitioning in the future (eg. xmeans partition, kmeans subdivision).
-
         Parameters
         ----------
-        dm : DistanceFinder
+        vehicle_clusterer : Clusterer
+            Strategy for finding distinct vehicle routes.
+        subclusterer : Clusterer
+            Strategy for recursive subdivision of routes for easier solving.
+            Note that this MUST have a max cap, and be configured to enforce
+            max_solve_size. A good example is k-means with k = max_solve_size.
+        distance_finder : DistanceFinder
             Strategy for generating asymmetric distance matrices.
-        rs : RouteSolver
+        route_solver : RouteSolver
             Strategy for solving ATSPs.
-        split_threshold : int
+        max_solve_size : int
             Max cluster size allowed to solve on. Trade-off between accuracy,
             solving time and solver-specific limitations.
         """
-        self.__dm = dm
-        self.__rs = rs
-        self.__split_threshold = split_threshold
+        self.__vehicle_clusterer = vehicle_clusterer
+        self.__subclusterer = subclusterer
+        self.__distance_finder = distance_finder
+        self.__route_solver = route_solver
+        self.__max_solve_size = max_solve_size
 
     # Helper functions
-    def __cartesian_cluster(self, orders: list[Order], k: int) -> np.ndarray:
-        """
-        Clusters orders by their Cartesian distances, via K-means++.
-
-        NOTE: Might be good to dedicate a strategy pattern to this in the
-        future.
-
-        Parameters
-        ----------
-        orders: list of Order
-            Contains all x, y, z points.
-
-        Returns
-        -------
-        ndarray
-            1D, input-aligned array labelled by their cluster
-            (eg. [0, 0, 1, 2, 0]).
-        """
-        points = [[o.x, o.y, o.z] for o in orders]
-        kmeans = KMeans(n_clusters=k, init="k-means++", random_state=0, n_init=10).fit(
-            points
-        )
-        return kmeans.labels_
-
     def __flatten_list(self, deep_list):
         # Generator to flatten arbitrarily nested lists
         for item in deep_list:
@@ -66,8 +54,7 @@ class RecursiveCFRS:
                 yield item
 
     def __solve_route(
-        self,
-        orders: list[Order],
+        self, orders: list[Order]
     ) -> tuple[list[Order | list], Order, Order]:
         """
         Solve for optimal node visit order, recursively splitting oversized
@@ -87,17 +74,17 @@ class RecursiveCFRS:
         route_end : Order
             The last node of the deep cluster tree.
         """
-        # Base case: Safe size to solve
-        if len(orders) <= self.__split_threshold:
+        # Base case 1: Safe size to solve
+        if len(orders) <= self.__max_solve_size:
             if len(orders) == 1:  # Trivial case
-                # Also saves some API calls for some dm/rs
+                # Also saves some API calls for some df/rs
                 base_solution = orders
                 route_start = route_end = orders[0]
             else:
                 # Solve symmetric TSP (single point nodes)
                 nodes = [(o, o) for o in orders]
-                distance_matrix = self.__dm.build_matrix(nodes)
-                solved_labels, _ = self.__rs.solve(distance_matrix)
+                distance_matrix = self.__distance_finder.build_matrix(nodes)
+                solved_labels, _ = self.__route_solver.solve(distance_matrix)
                 # TODO: Drop cost for now, might use later if strategised
 
                 # Reorder order objects by solution
@@ -109,12 +96,23 @@ class RecursiveCFRS:
 
             return base_solution, route_start, route_end
 
-        # Recusion case: Split oversized cluster, recurse, solve cluster TSP
+        # Continue: Attempt to subdivide via clustering
+        cluster_labels = self.__subclusterer.cluster(orders)
+        # NOTE: We just have to trust that the subclusterer enforces a max
+        # split cap to equal max_solve_size. Can't validate in here atm.
+
+        # Base case 2: Unsplittable (likely insignificant distance)
+        if len(np.unique(cluster_labels)) == 1:
+            # If no change and still oversized, it's likely the data are all
+            # duplicates or too similar. Though not always true, there's no
+            # good choice but to just return it as if "trivially solved".
+            return orders, orders[0], orders[-1]
+
+        # Recusion case: Recurse subclusters, then stitch this cluster via ATSP
         spoofed_nodes = []
         unsolved_branches = []
 
-        # Cluster and wait for subcluster TSP solutions
-        cluster_labels = self.__cartesian_cluster(orders, self.__split_threshold)
+        # Wait for subcluster TSP solutions
         for cluster in np.unique(cluster_labels):
             order_indices = np.where(cluster_labels == cluster)[0]
             subset_orders = [orders[i] for i in order_indices]
@@ -125,8 +123,8 @@ class RecursiveCFRS:
             spoofed_nodes.append((subroute_start, subroute_end))
 
         # Solve current cluster's TSP using the asymmetric node data...
-        distance_matrix = self.__dm.build_matrix(spoofed_nodes)
-        solved_labels, _ = self.__rs.solve(distance_matrix)
+        distance_matrix = self.__distance_finder.build_matrix(spoofed_nodes)
+        solved_labels, _ = self.__route_solver.solve(distance_matrix)
         # NOTE: Drop cost for now, might use later if also building costs
 
         # ...And encode this into the solution tree via branch ordering
@@ -141,9 +139,7 @@ class RecursiveCFRS:
 
     # Public methods
     def solve_vrp(
-        self,
-        orders: list[Order],
-        vehicle_count: int,
+        self, orders: list[Order]
     ) -> tuple[list[list[Order]], list[list[Order | list]]]:
         """
         Partition into vehicle routes, then solve for heuristically optimal
@@ -165,7 +161,7 @@ class RecursiveCFRS:
         """
         # Cluster into distinct vehicle routes
         vehicle_routes = []
-        cluster_labels = self.__cartesian_cluster(orders, vehicle_count)
+        cluster_labels = self.__vehicle_clusterer.cluster(orders)
 
         # Gather each solution subtrees and TSP data (recurse as much as needed)
         # Start up recursion for each vehicle
