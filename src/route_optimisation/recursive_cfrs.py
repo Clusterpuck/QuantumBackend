@@ -28,6 +28,8 @@ class RecursiveCFRS:
             Strategy for finding distinct vehicle routes.
         subclusterer : Clusterer
             Strategy for recursive subdivision of routes for easier solving.
+            Note that this MUST have a max cap, and be configured to enforce
+            max_solve_size. A good example is k-means with k = max_solve_size.
         distance_finder : DistanceFinder
             Strategy for generating asymmetric distance matrices.
         route_solver : RouteSolver
@@ -96,6 +98,8 @@ class RecursiveCFRS:
 
         # Continue: Attempt to subdivide via clustering
         cluster_labels = self.__subclusterer.cluster(orders)
+        # NOTE: We just have to trust that the subclusterer enforces a max
+        # split cap to equal max_solve_size. Can't validate in here atm.
 
         # Base case 2: Unsplittable (likely insignificant distance)
         if len(np.unique(cluster_labels)) == 1:

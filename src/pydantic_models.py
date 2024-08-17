@@ -39,7 +39,6 @@ class SolverConfig(BaseModel):
 
 class RouteInput(BaseModel):
     vehicle_cluster_config: ClusterConfig
-    subcluster_config: ClusterConfig
     solver_config: SolverConfig
 
     orders: list[OrderInput]

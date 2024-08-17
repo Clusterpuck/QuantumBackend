@@ -3,8 +3,8 @@ from route_optimisation.clusterer.clusterer import Clusterer
 from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 
 
-class ClustererFactory:
-    # Validate and decide what clustering strategy to build for the API
+class VehicleClustererFactory:
+    # Validate and decide what vehicle clustering strategy to build for the API
     def create(self, clusterer_config: ClusterConfig) -> Clusterer:
         if clusterer_config.type == "kmeans":
             try:
