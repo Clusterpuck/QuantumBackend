@@ -72,7 +72,7 @@ class DWaveSolver(RouteSolver):
             If D-Wave cannot find a valid solution within the number of retries
         """
         # Fast fail
-        if len(distance_matrix) <= 2:
+        if len(distance_matrix) < 2:
             raise ValueError("Distance matrix must be 2x2 or larger.")
         elif distance_matrix.shape[0] != distance_matrix.shape[1]:
             raise ValueError("Distance matrix must be square.")
