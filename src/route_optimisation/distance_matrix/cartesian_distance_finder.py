@@ -21,6 +21,19 @@ class CartesianDistanceFinder(DistanceFinder):
         ndarray
             Asymmetric distance matrix
         """
+
+        if not isinstance(nodes, list):
+            raise TypeError("The 'nodes' parameter should be of type List[Tuple[Order, Order]]")
+        
+        if not all(isinstance(item, tuple) and len(item) == 2 for item in nodes):
+            raise TypeError("Each item in 'nodes' should be a tuple of two Orders")
+        
+        if not all(isinstance(item[0], Order) and isinstance(item[1], Order) for item in nodes):
+            raise TypeError("Each element of the tuple in 'nodes' should be of type Order")
+
+        if not nodes:
+            raise ValueError("The 'nodes' list cannot be empty")
+
         n = len(nodes)
         distance_matrix = np.zeros([n] * 2)
 
