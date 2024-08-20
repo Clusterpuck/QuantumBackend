@@ -155,6 +155,32 @@ def dummy_invalid_no_order() -> list[Order]:
     return matrix
 
 @pytest.fixture
+def dummy_unbalanced() -> list[Order]:
+    matrix = []
+    order1 = (0, 0, 0)
+    order2 = (5, 5, 5)
+    matrix.append((order1, order2))
+    matrix.append((order1))
+    return matrix
+
+@pytest.fixture
+def dummy_2x1() -> list[Order]:
+    matrix = []
+    order1 = (0, 0, 0)
+    order2 = (5, 5, 5)
+    matrix.append((order1))
+    matrix.append((order2))
+    return matrix
+
+@pytest.fixture
+def dummy_1x3() -> list[Order]:
+    matrix = []
+    order1 = (0, 0, 0)
+    order2 = (5, 5, 5)
+    matrix.append((order1, order2, order2))
+    return matrix
+
+@pytest.fixture
 def expected_mixed_types() -> list[list]:
     distance = math.dist((0, 51, 12.52), (0.42, 42, 63.2))
     return [[0, distance],[distance, 0]]
@@ -237,5 +263,14 @@ def test_matrix_values(dummy_cdf : CartesianDistanceFinder,
     matrix = dummy_cdf.build_matrix(extreme_orders)
     assert np.array_equal(matrix, expected_extreme_orders)
 
-def test_matrix_dimensions(dummy_cdf : CartesianDistanceFinder):
-    pass
+
+def test_input_dimensions(dummy_cdf : CartesianDistanceFinder,
+                          dummy_unbalanced,
+                          dummy_2x1,
+                          dummy_1x3):
+    with pytest.raises(TypeError):
+        dummy_cdf.build_matrix(dummy_unbalanced)
+    with pytest.raises(TypeError):
+        dummy_cdf.build_matrix(dummy_2x1)
+    with pytest.raises(TypeError):
+        dummy_cdf.build_matrix(dummy_1x3)
