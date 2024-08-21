@@ -28,7 +28,7 @@ class MapboxRequester:
     def __construct_url(self, nodes: list[tuple[Order, Order]]) -> str:
         # Matrix API has a 25 input limit, inclusive of sources and dests
         # Though hugely suboptimal, just cap to 12 source-dest pairs
-        locations = [f"{node[0].lon},{node[0].lat}"]  # Wants long first...
+        locations = [f"{node[0].lon},{node[0].lat}" for node in nodes]
         for node in nodes:
             locations.append(f"{node[1].lon},{node[1].lat}")
         locations_query = ";".join(locations)
@@ -100,16 +100,12 @@ class MapboxDistanceFinder(DistanceFinder):
             Node set contains unroutable pairs (e.g. roadless towns, crosses
             the ocean, etc).
         """
-        if not (0 < len(nodes) <= 12):
+        if not (1 <= len(nodes) <= 12):
             raise ValueError("Node count must be between 1 and 12.")
 
-        if (
-            len(nodes) == 1
-            and nodes[0][0].lat == nodes[0][1].lat
-            and nodes[0][0].lon == nodes[0][1].lon
-        ):
+        if len(nodes) == 1:
             # Trivial symmetric case, always 2D containing a single 0
-            return np.array([1] * 2)
+            return np.zeros((1, 1), dtype="float64")
         else:
             # Fetch and extract request to a matrix
             req = self.__requester.query_mapbox(nodes)
