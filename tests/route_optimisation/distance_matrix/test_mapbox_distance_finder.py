@@ -85,7 +85,7 @@ def expected_url() -> str:
     # Seems trailing decimal 0s beyond tenths are also dropped
 
     # Approaches should match input count, and always be curb
-    approaches = "?approaches=curb;curb;curb;curb"
+    approaches = "?approaches=curb;curb;curb;curb;curb;curb;curb;curb"
 
     # Sources/destinations should index the first and 2nd half respectively
     sources = "&sources=0;1;2;3"
@@ -104,7 +104,7 @@ def expected_short_url() -> str:
     starts = "115.801288,-31.899364;115.886444,-32.010274"
     ends = "115.79983,-31.900399;115.905166,-32.04065"
     locations = f"{starts};{ends}"
-    approaches = "?approaches=curb;curb"
+    approaches = "?approaches=curb;curb;curb;curb"
     sources = "&sources=0;1"
     dests = "&destinations=2;3"
     token = "&access_token=test_string"

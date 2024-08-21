@@ -3,7 +3,10 @@ import os
 from route_optimisation.distance_matrix.cartesian_distance_finder import (
     CartesianDistanceFinder,
 )
-from route_optimisation.distance_matrix.mapbox_distance_finder import MapboxDistanceFinder
+from route_optimisation.distance_matrix.mapbox_distance_finder import (
+    MapboxDistanceFinder,
+    MapboxRequester,
+)
 from route_optimisation.distance_matrix.distance_finder import DistanceFinder
 
 
@@ -13,6 +16,8 @@ class DistanceFactory:
         if distance_type == "cartesian":
             return CartesianDistanceFinder()
         elif distance_type == "mapbox":
-            return MapboxDistanceFinder(token=os.environ["MAPBOX_TOKEN"])
+            return MapboxDistanceFinder(
+                requester=MapboxRequester(token=os.environ["MAPBOX_TOKEN"])
+            )
         else:
             raise ValueError("Unsupported distance type.")

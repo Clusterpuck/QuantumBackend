@@ -32,7 +32,7 @@ class MapboxRequester:
         for node in nodes:
             locations.append(f"{node[1].lon},{node[1].lat}")
         locations_query = ";".join(locations)
-        approach_query = ";".join([APPROACH] * len(nodes))
+        approach_query = ";".join([APPROACH] * len(nodes) * 2)
 
         # Select first/second halves as source/dest sets
         sources_query = ";".join([str(x) for x in range(len(nodes))])
@@ -109,6 +109,7 @@ class MapboxDistanceFinder(DistanceFinder):
         else:
             # Fetch and extract request to a matrix
             req = self.__requester.query_mapbox(nodes)
+            print(req.json())
             matrix_data = req.json()["durations"]
             distance_matrix = np.array(matrix_data, dtype="float64")
             # NOTE: InvalidInput 422 should be impossible with valid Orders
