@@ -7,6 +7,11 @@ class Fact(BaseModel):
     fact: str
 
 
+class Message(BaseModel):
+    # Currently used to generate docs on simple, non-Pydantic error responses
+    message: str
+
+
 class OrderInput(BaseModel):
     # Synonyms include location (plus id) or customer (orders imply a customer)
     # Might need the alias generator to cast to snake_case

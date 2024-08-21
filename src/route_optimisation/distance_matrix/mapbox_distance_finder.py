@@ -109,7 +109,6 @@ class MapboxDistanceFinder(DistanceFinder):
         else:
             # Fetch and extract request to a matrix
             req = self.__requester.query_mapbox(nodes)
-            print(req.json())
             matrix_data = req.json()["durations"]
             distance_matrix = np.array(matrix_data, dtype="float64")
             # NOTE: InvalidInput 422 should be impossible with valid Orders
