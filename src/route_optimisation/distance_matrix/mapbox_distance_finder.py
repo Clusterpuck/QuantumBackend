@@ -13,14 +13,15 @@ APPROACH = "curb"
 class MapboxRequester:
     def __init__(self, token: str):
         """
-        Inits the raw request builder for MapboxDistanceFinder. The created
+        Inits the raw request builder for MapboxDistanceFinder. This inlcudes
+        building the URL, calling, and the rate limiter handling logic.
 
         Designed to be mockable to allow testing everything but the API call.
 
         Parameters
         ----------
         token : str
-            A Mapbox public access token (i.e. "pk.[long-token]").
+            A Mapbox public access token (which starts with "pk").
         """
         self.__token = token
 
@@ -40,8 +41,15 @@ class MapboxRequester:
         return f"{ENDPOINT}{locations_query}?approaches={approach_query}&sources={sources_query}&destinations={dests_query}&access_token={self.__token}"
 
     def query_mapbox(self, nodes: list[tuple[Order, Order]]) -> requests.Response:
-        # Do only the API call, being the only untestable part
-        return requests.get(self.__construct_url(nodes))
+        # Do only the hard-to-test, external API part
+        # Matrix API v1 has a rate limit of 60s, so allow max 1 retry
+        req = requests.get(self.__construct_url(nodes))
+        if req.status_code == 429:
+            time.sleep(60)
+            req = requests.get(self.__construct_url(nodes))
+            # Barring API change, this should always work. Probably.
+        
+        return req
 
 
 class MapboxDistanceFinder(DistanceFinder):
@@ -50,8 +58,7 @@ class MapboxDistanceFinder(DistanceFinder):
         Inits an asymmetric distance matrix maker that uses a Mapbox's Matrix
         API. "Distances" use drive duration in seconds.
 
-        Wraps the actual requester object, handling only the validation and
-        rate limit retry logic.
+        Wraps the actual requester object, handling only the validation.
 
         Limitations:
         - Does not currently use real-time traffic; only estimated durations.
@@ -90,8 +97,6 @@ class MapboxDistanceFinder(DistanceFinder):
         ValueError
             Node count is not between 1-12 inclusive.
         RuntimeError
-            Mapbox cannot find a valid solution within the max retries.
-        RuntimeError
             Node set contains unroutable pairs (e.g. roadless towns, crosses
             the ocean, etc).
         """
@@ -106,22 +111,14 @@ class MapboxDistanceFinder(DistanceFinder):
             # Trivial symmetric case, always 2D containing a single 0
             return np.array([1] * 2)
         else:
-            # Attempt fetch
-            # Matrix API v1 has a rate limit of 60s, so allow max 1 retry
+            # Fetch and extract request to a matrix
             req = self.__requester.query_mapbox(nodes)
-            if req.status_code == 429:
-                time.sleep(60)
-                req = self.__requester.query_mapbox(nodes)
-
-            # Data error 1: Invalid coordinates
-            if req.status_code == 422:
-                raise RuntimeError(req.json()["message"])
-
-            # Extract request data to a matrix
             matrix_data = req.json()["durations"]
             distance_matrix = np.array(matrix_data, dtype="float64")
+            # NOTE: InvalidInput 422 should be impossible with valid Orders
+            # Everything else shouldn't be caught (internal server error)
 
-            # Data error 2: Potentially unroutable coordinate pairs
+            # Potentially unroutable coordinate pairs
             if np.isnan(distance_matrix).any():
                 # Checking that any reachable path exists in a directed graph
                 # is a Hamiltonian Path problem. For now, avoid complex
