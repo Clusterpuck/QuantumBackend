@@ -111,24 +111,39 @@ async def generate_routes(request: RouteInput):
 
     # Since requests should be stateless and unshared, set up new solvers
     try:
-        vehicle_clusterer = vehicle_clusterer_factory.create(request.vehicle_cluster_config)
+        vehicle_clusterer = vehicle_clusterer_factory.create(
+            request.vehicle_cluster_config
+        )
         distance_finder = distance_factory.create(request.solver_config.distance)
         route_solver = solver_factory.create(request.solver_config.type)
     except ValueError as e:
         # Should be safe to relay these back to client
         return JSONResponse(status_code=400, content={"message": str(e)})
-    
+
     # For recursive, we need to cap max clusters, since it stitches on return
     # Since capturing substructures matters progressively less, just k-means it
     subclusterer = KMeansClusterer(request.solver_config.max_solve_size)
 
-    vrp_solver = RecursiveCFRS(
-        vehicle_clusterer,
-        subclusterer,
-        distance_finder,
-        route_solver,
-        request.solver_config.max_solve_size,
-    )
+    try:
+        vrp_solver = RecursiveCFRS(
+            vehicle_clusterer,
+            subclusterer,
+            distance_finder,
+            route_solver,
+            request.solver_config.max_solve_size,
+        )
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"message": f"Validation error. Payload args may be invalid: {e}"},
+        )
+    except RuntimeError as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "message": f"Error at runtime. Payload data or args may be invalid: {e}"
+            },
+        )
 
     # Pre-compute Cartesian approx, since it's very likely we will use it
     new_orders = orders_to_cartesian(request.orders)
