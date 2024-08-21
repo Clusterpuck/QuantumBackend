@@ -21,6 +21,10 @@ class CartesianDistanceFinder(DistanceFinder):
         ndarray
             Asymmetric distance matrix
         """
+
+        if not nodes:
+            raise ValueError("The 'nodes' list cannot be empty")
+
         n = len(nodes)
         distance_matrix = np.zeros([n] * 2)
 
