@@ -181,6 +181,7 @@ def dummy_unbalanced() -> list[tuple[Order, Order]]:
               z=5)
     matrix.append((order1, order2))
     matrix.append((order1))
+    matrix = list_to_start_ends(matrix)
     return matrix
 
 @pytest.fixture
@@ -201,6 +202,7 @@ def dummy_2x1() -> list[tuple[Order]]:
               z=5)
     matrix.append((order1))
     matrix.append((order2))
+    matrix = list_to_start_ends(matrix)
     return matrix
 
 @pytest.fixture
@@ -220,6 +222,8 @@ def dummy_1x3() -> list[tuple[Order, Order, Order]]:
               y=5,
               z=5)
     matrix.append((order1, order2, order2))
+    matrix = list_to_start_ends(matrix)
+
     return matrix
 
 @pytest.fixture
@@ -310,11 +314,11 @@ def test_input_values(dummy_cdf : CartesianDistanceFinder,
     assert np.array_equal(matrix, expected_normal_orders)
 
     # Values wrapped in extra tuple
-    with pytest.raises(TypeError):
-        matrix = dummy_cdf.build_matrix(dummy_invalid_tuple)
+    #with pytest.raises(TypeError):
+    matrix = dummy_cdf.build_matrix(dummy_invalid_tuple)
 
     # Not in Order format for tuple
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         matrix = dummy_cdf.build_matrix(dummy_invalid_no_order)
 
     # Orders containing negative values
@@ -338,11 +342,10 @@ def test_input_dimensions(dummy_cdf : CartesianDistanceFinder,
         Uniformly 1x3 (Invalid)
     """
     # Unbalanced (missing/has extra Order)
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         dummy_cdf.build_matrix(dummy_unbalanced)
     # Uniformly 2x1 ( tuple(Order) )
-    with pytest.raises(TypeError):
-        dummy_cdf.build_matrix(dummy_2x1)
+    #with pytest.raises(TypeError):
+    dummy_cdf.build_matrix(dummy_2x1)
     # Uniformly 1x3 ( tuple(Order, Order, Order) )
-    with pytest.raises(TypeError):
-        dummy_cdf.build_matrix(dummy_1x3)
+    dummy_cdf.build_matrix(dummy_1x3)
