@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
-from pydantic_models import Fact, RouteInput, Order, OrderInput
+from pydantic_models import Fact, Message, RouteInput, Order, OrderInput
 from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 from route_optimisation.recursive_cfrs import RecursiveCFRS
 from solver_factory import SolverFactory
@@ -105,7 +105,7 @@ def add_fact(new_fact: Fact):
     return {"message": "Fact added successfully", "total_facts": get_total_facts()}
 
 
-@app.post("/generate-routes")
+@app.post("/generate-routes", responses={400: {"model": Message}})
 async def generate_routes(request: RouteInput):
     # Input should already be type/range validated by pydantic
 
@@ -124,14 +124,20 @@ async def generate_routes(request: RouteInput):
     # Since capturing substructures matters progressively less, just k-means it
     subclusterer = KMeansClusterer(request.solver_config.max_solve_size)
 
+    vrp_solver = RecursiveCFRS(
+        vehicle_clusterer,
+        subclusterer,
+        distance_finder,
+        route_solver,
+        request.solver_config.max_solve_size,
+    )
+
+    # Pre-compute Cartesian approx, since it's very likely we will use it
+    new_orders = orders_to_cartesian(request.orders)
+
     try:
-        vrp_solver = RecursiveCFRS(
-            vehicle_clusterer,
-            subclusterer,
-            distance_finder,
-            route_solver,
-            request.solver_config.max_solve_size,
-        )
+        # Solve VRP
+        optimal_route_per_vehicle, cluster_tree = vrp_solver.solve_vrp(new_orders)
     except ValueError as e:
         return JSONResponse(
             status_code=400,
@@ -144,12 +150,6 @@ async def generate_routes(request: RouteInput):
                 "message": f"Error at runtime. Payload data or args may be invalid: {e}"
             },
         )
-
-    # Pre-compute Cartesian approx, since it's very likely we will use it
-    new_orders = orders_to_cartesian(request.orders)
-
-    # Solve VRP
-    optimal_route_per_vehicle, cluster_tree = vrp_solver.solve_vrp(new_orders)
 
     # Print clustering results to console
     display_cluster_tree(cluster_tree, 0)
