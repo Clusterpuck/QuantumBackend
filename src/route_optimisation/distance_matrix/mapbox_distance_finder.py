@@ -1,8 +1,6 @@
-from typing import Literal
 import numpy as np
-from urllib3.exceptions import MaxRetryError
-from requests.adapters import HTTPAdapter, Retry
 import requests
+import time
 
 from route_optimisation.distance_matrix.distance_finder import DistanceFinder
 from pydantic_models import Order
@@ -12,35 +10,26 @@ ENDPOINT = "https://api.mapbox.com/directions-matrix/v1/mapbox/driving/"
 APPROACH = "curb"
 
 
-class MapboxDistanceFinder(DistanceFinder):
-    def __init__(self, token: str, max_retries: int = 5):
+class MapboxRequester:
+    def __init__(self, token: str):
         """
-        Inits an asymmetric distance matrix maker that uses a Mapbox's Matrix
-        API. For this project's scope, an semi-arbitrary cap of 12 is used.
+        Inits the raw request builder for MapboxDistanceFinder. The created
 
-        "Distances" use drive duration in seconds, which can be asymmetric.
-        Note this is not live traffic. Failure to find a path (unroutable
-        locations) will raise an exception.
+        Designed to be mockable to allow testing everything but the API call.
 
         Parameters
         ----------
         token : str
             A Mapbox public access token (i.e. "pk.[long-token]").
-        max_retries : int, default=5
-            Max retries before giving up. 5 retries should be enough to fully
-            avoid rate limiting, but takes a literal good minute.
         """
-        if max_retries < 0:
-            raise ValueError("max_retries cannot be negative.")
-
         self.__token = token
-        self.__max_retries = max_retries
 
-    def __construct_request(self, nodes: list[tuple[Order, Order]]) -> str:
-        # Just do it the lazy way for now, limiting to 12x12 even on symmetric
-        locations = [f"{node[0].lat},{node[0].lon}"]
+    def __construct_url(self, nodes: list[tuple[Order, Order]]) -> str:
+        # Matrix API has a 25 input limit, inclusive of sources and dests
+        # Though hugely suboptimal, just cap to 12 source-dest pairs
+        locations = [f"{node[0].lon},{node[0].lat}"]  # Wants long first...
         for node in nodes:
-            locations.append(f"{node[1].lat},{node[1].lon}")
+            locations.append(f"{node[1].lon},{node[1].lat}")
         locations_query = ";".join(locations)
         approach_query = ";".join([APPROACH] * len(nodes))
 
@@ -50,18 +39,46 @@ class MapboxDistanceFinder(DistanceFinder):
 
         return f"{ENDPOINT}{locations_query}?approaches={approach_query}&sources={sources_query}&destinations={dests_query}&access_token={self.__token}"
 
+    def query_mapbox(self, nodes: list[tuple[Order, Order]]) -> requests.Response:
+        # Do only the API call, being the only untestable part
+        return requests.get(self.__construct_url(nodes))
+
+
+class MapboxDistanceFinder(DistanceFinder):
+    def __init__(self, requester: MapboxRequester):
+        """
+        Inits an asymmetric distance matrix maker that uses a Mapbox's Matrix
+        API. "Distances" use drive duration in seconds.
+
+        Wraps the actual requester object, handling only the validation and
+        rate limit retry logic.
+
+        Limitations:
+        - Does not currently use real-time traffic; only estimated durations.
+        - Locations must be fully reachable. Any unroutable pairs will raise
+        an exception regardless of if some path still exists.
+        - Capped at 12 nodes for now. Extension is doable in 24/12 block
+        strides, but out of quantum project scope with so few qubits.
+
+        Parameters
+        ----------
+        requester : MapboxRequester
+            Allows mock API testing without external code.
+        """
+        self.__requester = requester
+
     def build_matrix(self, nodes: list[tuple[Order, Order]]) -> np.ndarray:
         """
         Converts TSP nodes into a distance matrix. To create an asymmetric
         matrix, set the start and end coords per "node" to differ.
 
-        Mapbox has a cap of 25 lat/lon inputs. For simplicity, start and ends
-        will be capped to 12 nodes each.
+        Mapbox is subject to extra limitations on input size and data.
 
         Parameters
         ----------
         nodes: list of (start_order, end_order)
-            Unordered list of "TSP cities", each with start and end coordinates as orders.
+            Unordered list of "TSP cities", each with start and end
+            coordinates as orders.
 
         Returns
         -------
@@ -72,10 +89,11 @@ class MapboxDistanceFinder(DistanceFinder):
         ------
         ValueError
             Node count is not between 1-12 inclusive.
-        MaxRetryError
+        RuntimeError
             Mapbox cannot find a valid solution within the max retries.
         RuntimeError
-            Node set contains unroutable points.
+            Node set contains unroutable pairs (e.g. roadless towns, crosses
+            the ocean, etc).
         """
         if not (0 < len(nodes) <= 12):
             raise ValueError("Node count must be between 1 and 12.")
@@ -88,28 +106,26 @@ class MapboxDistanceFinder(DistanceFinder):
             # Trivial symmetric case, always 2D containing a single 0
             return np.array([1] * 2)
         else:
-            # Set up exp backoff (starting at 2s) to resist rate limiting
-            # Limit seems to be 60s, returning code 429
-            with requests.Session() as session:
-                retry_adapter = HTTPAdapter(
-                    max_retries=Retry(
-                        total=self.__max_retries,
-                        backoff_factor=2,
-                        backoff_max=60,
-                        status_forcelist=[429],
-                    )
-                )
-                session.mount("https://", retry_adapter)
-                req = session.get(self.__construct_request(nodes))
-            # TODO: Investigate if there is a retry-after header later on
-            # We will let any errors after this point bubble up for now...
-            # TODO: Wrap a proper error type around value/runtime/this and return to client
+            # Attempt fetch
+            # Matrix API v1 has a rate limit of 60s, so allow max 1 retry
+            req = self.__requester.query_mapbox(nodes)
+            if req.status_code == 429:
+                time.sleep(60)
+                req = self.__requester.query_mapbox(nodes)
 
+            # Data error 1: Invalid coordinates
+            if req.status_code == 422:
+                raise RuntimeError(req.json()["message"])
+
+            # Extract request data to a matrix
             matrix_data = req.json()["durations"]
             distance_matrix = np.array(matrix_data, dtype="float64")
 
-            # Also check that it is fully routable
+            # Data error 2: Potentially unroutable coordinate pairs
             if np.isnan(distance_matrix).any():
-                raise RuntimeError("Nodes contain unroutable points using Mapbox.")
+                # Checking that any reachable path exists in a directed graph
+                # is a Hamiltonian Path problem. For now, avoid complex
+                # fallback logic and treat as a limitation of road routing.
+                raise RuntimeError("Mapbox found unroutable location pairs.")
 
             return distance_matrix
