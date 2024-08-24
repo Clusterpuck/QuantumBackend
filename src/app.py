@@ -1,7 +1,7 @@
 import random
 from fastapi.responses import JSONResponse
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
@@ -21,6 +21,14 @@ vehicle_clusterer_factory = VehicleClustererFactory()
 distance_factory = DistanceFactory()
 solver_factory = SolverFactory()
 
+STATIC_TOKEN = "test_token"
+
+def token_authentication(authorisation: str = Header(None)):
+    # Apparently you should add Bearer?
+    if authorisation != f"Bearer {STATIC_TOKEN}":
+        raise HTTPException(
+            status_code=401, detail="Invalid or missing token",
+        )
 
 # Helper functions
 def get_total_facts():
@@ -104,9 +112,9 @@ def add_fact(new_fact: Fact):
     facts.append(new_fact.fact)
     return {"message": "Fact added successfully", "total_facts": get_total_facts()}
 
-
 @app.post("/generate-routes", responses={400: {"model": Message}})
-async def generate_routes(request: RouteInput):
+async def generate_routes(request: RouteInput,
+                          token: str = Depends(token_authentication)):
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
