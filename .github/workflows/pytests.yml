@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout code
-    - uses: actions/checkout@v3
+      uses: actions/checkout@v3
 
     - name: Set up Python 3.11.9
       uses: actions/setup-python@v3
@@ -32,7 +32,7 @@ jobs:
     - name: Archive Pytest test report
       uses: actions/upload-artifact@v3
       with:
-        name: SuperTest-test-report
+        name: Pytest-test-report
         path: report
           
     - name: Upload Pytest report to GitHub
