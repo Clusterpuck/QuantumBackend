@@ -233,3 +233,5 @@ def test_regular_matrices(dummy_bfs : BruteForceSolver,
     # 4x4 matrix
     # 6.242 + 1 + 1.1
     assert dummy_bfs.solve(normal_4x4) == ([1, 2, 3, 0], 8.342)
+
+    assert True == False
