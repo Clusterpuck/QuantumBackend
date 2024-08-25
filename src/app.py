@@ -109,7 +109,6 @@ def random_fact():
 
     return {"fact": facts[random_fact_id]}
 
-#temp comment
 @app.post("/addfact")
 def add_fact(new_fact: Fact):
     facts.append(new_fact.fact)
