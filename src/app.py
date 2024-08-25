@@ -26,6 +26,8 @@ STATIC_TOKEN = os.environ.get('BACKEND_TOKEN')
 
 def token_authentication(authorisation: str = Header(None)):
     # Apparently you should add Bearer?
+    print("Our Token", STATIC_TOKEN)
+    print("Received Token", authorisation)
     if authorisation != f"Bearer {STATIC_TOKEN}":
         raise HTTPException(
             status_code=401, detail="Invalid or missing token",
