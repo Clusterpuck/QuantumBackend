@@ -1,29 +1,31 @@
-name: Pytest API Testing
+name: Run Pytest
 
 on:
   push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 jobs:
-  run-tests:
+  test:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Python 3.11.9
-      uses: actions/setup-python@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
-        python-version: "3.11.9"
+        python-version: '3.11.9'  # You can change this to the version you use
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-                
-    - name: Test with pytest
+
+    - name: Run tests
       run: |
-        pytest        
+        pytest
