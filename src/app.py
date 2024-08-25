@@ -1,6 +1,7 @@
 import random
 from fastapi.responses import JSONResponse
 import numpy as np
+import os
 from fastapi import FastAPI, HTTPException, Depends, Header
 
 from vehicle_clusterer_factory import VehicleClustererFactory
@@ -21,7 +22,7 @@ vehicle_clusterer_factory = VehicleClustererFactory()
 distance_factory = DistanceFactory()
 solver_factory = SolverFactory()
 
-STATIC_TOKEN = "test_token"
+STATIC_TOKEN = os.environ.get('BACKEND_TOKEN')
 
 def token_authentication(authorisation: str = Header(None)):
     # Apparently you should add Bearer?
