@@ -175,7 +175,7 @@ class TSPFormulation:
 
         # Enforce Hamiltonian path
         incentive_terms = self.__add_selection_incentive(constraint_factor, n)
-        time_times = self.__add_time_constraints(constraint_factor, n)
+        time_terms = self.__add_time_constraints(constraint_factor, n)
         position_terms = self.__add_position_constraints(constraint_factor, n)
 
-        return cost_terms | incentive_terms | time_times | position_terms
+        return cost_terms | incentive_terms | time_terms | position_terms
