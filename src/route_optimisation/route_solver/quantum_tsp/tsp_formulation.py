@@ -1,3 +1,5 @@
+"""Creates TSP QUBO for D-Wave Solver"""
+
 import numpy as np
 
 
@@ -165,6 +167,30 @@ class TSPFormulation:
         constraint_factor: int,
         is_circuit: bool,
     ) -> dict[tuple[int, int], int]:
+        """
+        Strongly penalises revisiting the same node (aka vertical one-hot
+        violations). When paired with time constraints, this inherently
+        discourages more than n selections.
+
+        Runs in O(n^3), creating n(n-1)^2 new edges.
+
+        Parameters
+        ----------
+        distance_matrix : ndarray
+            2D asymmetric distance matrix.
+        cost_factor : int
+            Scaling factor to adjust distance weighting.
+        constraint_factor : int
+            Scaling factor to adjust constraint weighting.
+        is_circuit : bool
+            Toggle between circuit and path.
+
+        Returns
+        -------
+        dict
+            Collection of QUBO edge weights, indexed by 2-tuple of BV indices.
+            Note that QUBO just sums (x, y) and (y, x) edges.
+        """
         # Normalise, so that relative scaling factors work
         max_distance = np.max(np.array(distance_matrix))
         scaled_matrix = distance_matrix / max_distance
