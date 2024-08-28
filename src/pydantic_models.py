@@ -3,10 +3,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class Fact(BaseModel):
-    fact: str
-
-
 class Message(BaseModel):
     # Currently used to generate docs on simple, non-Pydantic error responses
     message: str
