@@ -1,3 +1,9 @@
+"""
+FastAPI framework to provide endpoint to generate routes for Vehicle 
+Routing Problem.
+Intended to be called only by C# Backend.
+"""
+
 import os
 import numpy as np
 from fastapi import FastAPI, HTTPException, Depends, Header
@@ -110,20 +116,32 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
 # Endpoints
 @app.get("/")
 def default_test() -> None:
+    """
+    Default page
+    """
     return "Switching to FastAPI"
 
 @app.post("/generate-routes", responses={400: {"model": Message}})
 async def generate_routes(request: RouteInput,
                           token: str = Depends(token_authentication)) -> list[list[int]]:
     """
-    
+    Endpoint provides a solution for the vehicle routing problem (VRP).
+    Receives VRP configuration parameters, including a list of orders.
 
     Parameters
     ----------
-    
+    request : RouteInput
+        vehicle_cluster_config : ClusterConfig
+        solver_config : SolverConfig
+        Orders : list[OrderInput]
+    token : str
+        Verifies incoming token
 
     Returns
     -------
+    output : list[list[int]]
+        Outer list contains routes for every vehicle
+        Inner list contains route for a particular vehicle
     """
     # Input should already be type/range validated by pydantic
 
