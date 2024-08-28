@@ -20,7 +20,7 @@ When solving parent clusters, the end of each child route is connected to the st
 
 ### Distance Matrix
 
-Contains the methods to define the distance matrix between orders for a cluster.
+Contains the methods to define the distance metric between orders for a cluster.
 View more information [Here](distance_matrix/README.md)
 
 ### Route Solver
