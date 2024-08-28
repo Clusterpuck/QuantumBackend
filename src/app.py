@@ -1,8 +1,7 @@
-import random
-from fastapi.responses import JSONResponse
-import numpy as np
 import os
+import numpy as np
 from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi.responses import JSONResponse
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
@@ -14,8 +13,6 @@ from solver_factory import SolverFactory
 
 app = FastAPI()
 
-facts = ["One", "Two", "Three", "Four", "Five"]
-
 # Simple factories
 # This relocates and bundles specialised validation/config logic
 vehicle_clusterer_factory = VehicleClustererFactory()
@@ -24,8 +21,20 @@ solver_factory = SolverFactory()
 
 STATIC_TOKEN = os.environ.get('BACKEND_TOKEN')
 
-def token_authentication(authorisation: str = Header(None)):
-    # Apparently you should add Bearer?
+def token_authentication(authorisation: str = Header(None)) -> None:
+    """
+    Authenticates the token of incoming request.
+
+    Parameters
+    ----------
+    authorisation : str
+        'authorisation' header value from HTTP request.
+
+    Raises
+    ------
+    HTTPException
+        Invalid or missing token.
+    """
     print("Our Token", STATIC_TOKEN)
     print("Received Token", authorisation)
     if authorisation != f"Bearer {STATIC_TOKEN}":
@@ -75,6 +84,16 @@ def orders_to_cartesian(
 
 
 def display_cluster_tree(deep_list: list, depth: int) -> None:
+    """
+    Prints the content of the cluster tree recursively
+
+    Parameters
+    ----------
+    deep_list : list
+        Contains child lists of customers
+    depth : int
+        Depth of the cluster tree
+    """
     # Assumes correctly formatted cluster tree
     if len(deep_list) != 0:
         if isinstance(deep_list[0], list):
@@ -90,12 +109,22 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
 
 # Endpoints
 @app.get("/")
-def default_test():
+def default_test() -> None:
     return "Switching to FastAPI"
 
 @app.post("/generate-routes", responses={400: {"model": Message}})
 async def generate_routes(request: RouteInput,
-                          token: str = Depends(token_authentication)):
+                          token: str = Depends(token_authentication)) -> list[list[int]]:
+    """
+    
+
+    Parameters
+    ----------
+    
+
+    Returns
+    -------
+    """
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
