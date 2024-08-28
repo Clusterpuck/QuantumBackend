@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
-from pydantic_models import Fact, Message, RouteInput, Order, OrderInput
+from pydantic_models import Message, RouteInput, Order, OrderInput
 from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 from route_optimisation.recursive_cfrs import RecursiveCFRS
 from solver_factory import SolverFactory
@@ -34,10 +34,6 @@ def token_authentication(authorisation: str = Header(None)):
         )
 
 # Helper functions
-def get_total_facts():
-    return len(facts)
-
-
 def orders_to_cartesian(
     orders: list[OrderInput],
 ) -> list[Order]:
@@ -96,23 +92,6 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
 @app.get("/")
 def default_test():
     return "Switching to FastAPI"
-
-
-@app.get("/randomfact")
-def random_fact():
-    total_facts = get_total_facts()
-    if total_facts is None:
-        # Sample exception handling
-        raise HTTPException(status_code=500, detail="Failed to retrieve facts")
-
-    random_fact_id = random.randint(0, total_facts - 1)
-
-    return {"fact": facts[random_fact_id]}
-
-@app.post("/addfact")
-def add_fact(new_fact: Fact):
-    facts.append(new_fact.fact)
-    return {"message": "Fact added successfully", "total_facts": get_total_facts()}
 
 @app.post("/generate-routes", responses={400: {"model": Message}})
 async def generate_routes(request: RouteInput,
