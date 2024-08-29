@@ -41,8 +41,8 @@ def token_authentication(authorisation: str = Header(None)) -> None:
     HTTPException
         Invalid or missing token.
     """
-    print("Our Token", STATIC_TOKEN)
-    print("Received Token", authorisation)
+    print(f"Our Token: {STATIC_TOKEN}")
+    print(f"Received Token: {authorisation}")
     if authorisation != f"Bearer {STATIC_TOKEN}":
         raise HTTPException(
             status_code=401, detail="Invalid or missing token",
@@ -125,23 +125,23 @@ def default_test() -> None:
 async def generate_routes(request: RouteInput,
                           token: str = Depends(token_authentication)) -> list[list[int]]:
     """
-    Endpoint provides a solution for the vehicle routing problem (VRP).
-    Receives VRP configuration parameters, including a list of orders.
+    Endpoint provides a solution for the vehicle routing problem (VRP). <br/>
+    Receives VRP configuration parameters, including a list of orders. <br/>
 
     Parameters
     ----------
-    request : RouteInput
-        vehicle_cluster_config : ClusterConfig
-        solver_config : SolverConfig
-        Orders : list[OrderInput]
-    token : str
-        Verifies incoming token
+    request : RouteInput <br/>
+        &nbsp;&nbsp; vehicle_cluster_config : ClusterConfig <br/>
+        &nbsp;&nbsp; solver_config : SolverConfig <br/>
+        &nbsp;&nbsp; Orders : list[OrderInput] <br/>
+    token : str <br/>
+        &nbsp;&nbsp; Verifies incoming token <br/>
 
     Returns
     -------
-    output : list[list[int]]
-        Outer list contains routes for every vehicle
-        Inner list contains route for a particular vehicle
+    output : list[list[int]] <br/>
+        &nbsp;&nbsp; Outer list contains routes for every vehicle <br/>
+        &nbsp;&nbsp; Inner list contains route for a particular vehicle
     """
     # Input should already be type/range validated by pydantic
 
