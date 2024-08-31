@@ -1,3 +1,5 @@
+import ast
+
 """
 Optimal parameters are unknown, we must incorporate a method to sweep for optimal D-Wave parameters. Add everything to a separate folder. Its goal must be able to provide sufficient data to allow parameter sets to be analysed.
 
@@ -38,7 +40,8 @@ solver_factory = SolverFactory()
 # Call with args, output will be in data folder
 def wrapper():
     # Read payload, must be quantum
-    # Read parameters, get combinations of params
+    # Read tuning_parameters, get combinations of params
+    # Read solver_params
     # Write to file, Check if it can write before we start
     # Make the clusterers, distance finder via factories
     # Setup brute force so we have a baseline
@@ -62,20 +65,35 @@ def read_payload(filepath : str) -> list[Order]:
     # Use orders_to_cartesian before returning
     pass
 
-# Read parameters, return a 
-def read_parameters(filepath : str) -> list:
+# Read parameters
+def get_tuning_parameters(file_path : str) -> list:
     # Plan
     # Read file to get cost-constraint ratio and chain
-    list1 = [1, 2, 3]
-    list2 = ['A', 'B', 'C']
+    result = {}
+    with open(os.path.join("data", file_path), 'r') as file:
+        for line in file:
+            line = line.strip()
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip()
+                # Convert the value part from string to list using ast.literal_eval
+                value = ast.literal_eval(value.strip())
+                result[key] = value
+    print(type(result.get("cost_constraint_ratio")))
+    result = get_combinations(result.get("cost_constraint_ratio"), result.get("chain_strength"))
+    print(result)
+    return result
+
+# TODO Can just combine this with above
+def get_combinations(list1, list2):
     list3 = list(itertools.product(list1, list2))
-    print(list3)
+    #print(list3)
     return list3
 
 # Read D-Wave settings
-def get_solver_parameters(filepath : str) -> dict:
+def get_solver_parameters(file_path : str) -> dict:
     parameters = {}
-    file = open(os.path.join("data", filepath), "r") #TODO Work out this encoding that pylint is screaming about
+    file = open(os.path.join("data", file_path), "r") #TODO Work out this encoding that pylint is screaming about
     for line in file:
         line = line.strip()
         if ':' in line:
@@ -101,5 +119,6 @@ def parse_value(value : str) -> int | bool:
     print(type(value))
     return value
 
-get_solver_parameters("quantum_params")
+get_solver_parameters("solver_params")
+get_tuning_parameters("tuning_params")
 
