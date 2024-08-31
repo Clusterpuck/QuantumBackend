@@ -2,8 +2,12 @@ import ast
 import json
 import numpy as np
 
+from extended_recursive_cfrs import ExtendedRecursiveCFRS
 from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
+from route_optimisation.route_solver.dwave_solver import DWaveSolver
+from dwave.system.samplers import DWaveSampler
+from dwave.system.composites import EmbeddingComposite
 
 """
 Optimal parameters are unknown, we must incorporate a method to sweep for optimal D-Wave parameters. Add everything to a separate folder. Its goal must be able to provide sufficient data to allow parameter sets to be analysed.
@@ -95,18 +99,27 @@ def wrapper():
         file.write("Parameter testing test1")
 
     # Making necessary classes before route generation
-    vehicle_clusterer = KMeansClusterer(solver_parameters.get("max_solve_size"))
+    vehicle_clusterer = KMeansClusterer(1)
     subclusterer = KMeansClusterer(solver_parameters.get("max_solve_size"))
     distance_finder = distance_factory.create("cartesian")
 
     # TODO Setup brute force so we have a baseline
     brute_solver = BruteForceSolver()
-    # Hardcoded brute force search, assume recursive clustering is impossible
-    # TODO for each combination of params
+
+    # Hardcoded brute force search
+    baseline = ExtendedRecursiveCFRS(vehicle_clusterer,
+                                     subclusterer,
+                                     distance_finder,
+                                     brute_solver,
+                                     solver_parameters.get("max_solve_size"))
+    
+    x, y, base_cost = baseline.solve_vrp(orders)
+
     # Uses tuning_params list to iterate over
-        # TODO Recreate the solver with new params
-        # Should only be D-Wave solver being resetted
-        # TODO solve_vrp, extend and override so I can get cost
+    for set in tuning_sets:
+        #solver = create_solver(set)
+        vrp_solver = ExtendedRecursiveCFRS(vehicle_clusterer,subclusterer,distance_finder,brute_solver,solver_parameters.get("max_solve_size"))
+        vehicle_routes, raw_tree, cost = vrp_solver.solve_vrp(orders)
             # NOTE test with brute force, compare with hardcoded custom route before we go quantum
             # Store whatever our performance metrics are (distance relative to BFS)
         # TODO Append analysis data to file
@@ -116,7 +129,28 @@ def wrapper():
     # Read the output file for this?
     # TODO Save something to judge individual hyperparams
     # Read the output file for this?
+    """print("FROM BASELINE")
+    print(x)
+    display_cluster_tree(y, 0)
+    print(cost)"""
 
+
+def create_solver(set) -> DWaveSolver:
+    base_cost = 10 # For the sake of consistency in testing, please don't change this
+    scale_factor = set[0]
+    chain_value = set[1]
+    return DWaveSolver(
+                EmbeddingComposite(
+                    DWaveSampler(
+                        token=os.environ["DWAVE_TOKEN"],
+                        endpoint=os.environ["DWAVE_URL"],
+                        solver=os.environ["DWAVE_SOLVER"],
+                    )
+                ),
+                cost_factor = base_cost,
+                constraint_factor = base_cost * scale_factor,
+                chain_strength = chain_value
+            )
 
 # Read payload
 def get_payload(file_path : str) -> list[Order]:
@@ -124,6 +158,19 @@ def get_payload(file_path : str) -> list[Order]:
         data = RouteInput(**json.load(file))
         data = orders_to_cartesian(data.orders)
         return data
+    
+def display_cluster_tree(deep_list: list, depth: int) -> None:
+    # Assumes correctly formatted cluster tree
+    if len(deep_list) != 0:
+        if isinstance(deep_list[0], list):
+            # Keep searching for list[items] level
+            print("  " * depth + f"Split: {depth}")
+            for inner_list in deep_list:
+                display_cluster_tree(inner_list, depth + 1)
+        else:
+            # Prints indented cluster leaf
+            print("  " * depth + f"Leaf: {[o.order_id for o in deep_list]}")
+        # Ignore empty branches (though that could be a bug if so)
     
     # Read payload file, get orders
     # Use orders_to_cartesian before returning
