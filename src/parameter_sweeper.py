@@ -72,4 +72,34 @@ def read_parameters(filepath : str) -> list:
     print(list3)
     return list3
 
-read_parameters("")
+# Read D-Wave settings
+def get_solver_parameters(filepath : str) -> dict:
+    parameters = {}
+    file = open(os.path.join("data", filepath), "r") #TODO Work out this encoding that pylint is screaming about
+    for line in file:
+        line = line.strip()
+        if ':' in line:
+            key, value = line.split(':', 1)
+            key = key.strip()
+            value = value.strip()  # Remove surrounding quotes from the key
+            value = parse_value(value)    # Convert value to the appropriate type
+            parameters[key] = value
+    # TODO Validate Params before return
+    print(parameters)
+    return parameters
+
+def parse_value(value : str) -> int | bool:
+    if value.isdigit():
+        value = int(value)
+    elif value.lower() == 'true':
+        value = True
+    elif value.lower() == 'false':
+        value = False
+    else:
+        raise TypeError("Unexpected type when parsing")
+    print(value)
+    print(type(value))
+    return value
+
+get_solver_parameters("quantum_params")
+
