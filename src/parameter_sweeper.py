@@ -1,4 +1,6 @@
 import ast
+import json
+import numpy as np
 
 """
 Optimal parameters are unknown, we must incorporate a method to sweep for optimal D-Wave parameters. Add everything to a separate folder. Its goal must be able to provide sufficient data to allow parameter sets to be analysed.
@@ -34,8 +36,49 @@ distance_factory = DistanceFactory()
 solver_factory = SolverFactory()
 # Args should be
     # File path for payload
-    # File path for paramerters
+    # File path for params
     # File path for output
+
+# Helper functions
+# TODO Grab this from some other file
+def orders_to_cartesian(
+    orders: list[OrderInput],
+) -> list[Order]:
+    """
+    Pre-compute Cartesians for all orders.
+
+    Lat/long's distortion is not ideal for estimating distances in clustering
+    and solving, so this is used in place of real traffic distances etc.
+
+    Parameters
+    ----------
+    orders: list of OrderInput
+        The raw structs containing Customer IDs, latitude and longitude
+
+    Returns
+    -------
+    list of Order
+        Orders with additional x, y, z coordinate info
+    """
+    # NOTE: Doesn't cohere well with routing code, being an input pre-processor
+
+    r = 6371  # Radius of the earth
+    cartesian_orders = []
+
+    for order in orders:
+        r_lat, r_lon = np.deg2rad(order.lat), np.deg2rad(order.lon)
+        cartesian_orders.append(
+            Order(
+                order_id=order.order_id,
+                lat=order.lat,
+                lon=order.lon,
+                x=r * np.cos(r_lat) * np.cos(r_lon),
+                y=r * np.cos(r_lat) * np.sin(r_lon),
+                z=r * np.sin(r_lat),
+            )
+        )
+
+    return cartesian_orders
 
 # Call with args, output will be in data folder
 def wrapper():
@@ -59,11 +102,15 @@ def wrapper():
 
 
 # Read payload
-def read_payload(filepath : str) -> list[Order]:
-    # Read payload file, get orders, max solve size
-    # Hardcode the other params for setup
+def read_payload(file_path : str) -> list[Order]:
+    order_list = []
+    with open(os.path.join("data", file_path), 'r') as file:
+        data = RouteInput(**json.load(file))
+        data = orders_to_cartesian(data.orders)
+        return data
+    
+    # Read payload file, get orders
     # Use orders_to_cartesian before returning
-    pass
 
 # Read parameters
 def get_tuning_parameters(file_path : str) -> list:
@@ -76,7 +123,6 @@ def get_tuning_parameters(file_path : str) -> list:
             if ':' in line:
                 key, value = line.split(':', 1)
                 key = key.strip()
-                # Convert the value part from string to list using ast.literal_eval
                 value = ast.literal_eval(value.strip())
                 result[key] = value
     print(type(result.get("cost_constraint_ratio")))
@@ -93,32 +139,20 @@ def get_combinations(list1, list2):
 # Read D-Wave settings
 def get_solver_parameters(file_path : str) -> dict:
     parameters = {}
-    file = open(os.path.join("data", file_path), "r") #TODO Work out this encoding that pylint is screaming about
-    for line in file:
-        line = line.strip()
-        if ':' in line:
-            key, value = line.split(':', 1)
-            key = key.strip()
-            value = value.strip()  # Remove surrounding quotes from the key
-            value = parse_value(value)    # Convert value to the appropriate type
-            parameters[key] = value
+    with open(os.path.join("data", file_path), 'r', encoding='utf-8') as file:
+        for line in file:
+            line = line.strip()
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = ast.literal_eval(value.strip())  # Convert value to the appropriate type
+                print(value)
+                print(type(value))
+                parameters[key] = value
     # TODO Validate Params before return
     print(parameters)
     return parameters
 
-def parse_value(value : str) -> int | bool:
-    if value.isdigit():
-        value = int(value)
-    elif value.lower() == 'true':
-        value = True
-    elif value.lower() == 'false':
-        value = False
-    else:
-        raise TypeError("Unexpected type when parsing")
-    print(value)
-    print(type(value))
-    return value
-
 get_solver_parameters("solver_params")
 get_tuning_parameters("tuning_params")
-
+print(read_payload("Locations.json"))
