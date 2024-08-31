@@ -19,8 +19,7 @@ Call generate routes function with D-Wave solver of a configuration
 Write results to file
 Cost metric will be distance relative to BFS
 """
-# python .\parameter_sweeper.py "newFile"
-# Plan
+# python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params"
 import itertools
 import os
 import sys
@@ -84,6 +83,9 @@ def wrapper():
     print(get_payload(sys.argv[1]))
     print(get_tuning_parameters(sys.argv[2]))
     print(get_solver_parameters(sys.argv[3]))
+    if len(sys.argv) < 5:
+        print("Have argv[4]")
+    # TODO Read Exclusion List
 
     # TODO Write to file, Check if it can write before we start
     # Have a function for this, use argv[4]
