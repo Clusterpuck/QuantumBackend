@@ -6,20 +6,18 @@ import numpy as np
 Optimal parameters are unknown, we must incorporate a method to sweep for optimal D-Wave parameters. Add everything to a separate folder. Its goal must be able to provide sufficient data to allow parameter sets to be analysed.
 
 Input = sets of D-Wave hyperparams, these will have to be added to the solver factory.
+Input = Payload
+Input = D-Wave other Params, read from file for params that are semi-fixed
 Input = Exclusion list, exclude a particular combination, rather have this earlier than later
-Output = Output file storing data for analysis
+Output = Output file storing data for analysis, relevant heatmap/contour plot as images
 
 Structure
 
-- Preprocessing + relevant data to begin processing
-- Loop over the combination of parameters
-  - Call generate routes function with D-Wave solver of a configuration
-  - Write results to file
-
-Will need some metric for "optimality". Could compare costs of BFS and Quantum?
-2 parameters, can do simple graph?
-Heatmap?
-Contour plot?
+Preprocessing + relevant data to begin processing
+Loop over the combination of parameters
+Call generate routes function with D-Wave solver of a configuration
+Write results to file
+Cost metric will be distance relative to BFS
 """
 # python .\parameter_sweeper.py "newFile"
 # Plan
@@ -82,28 +80,35 @@ def orders_to_cartesian(
 
 # Call with args, output will be in data folder
 def wrapper():
-    # Read payload, must be quantum
-    # Read tuning_parameters, get combinations of params
-    # Read solver_params
-    # Write to file, Check if it can write before we start
-    # Make the clusterers, distance finder via factories
-    # Setup brute force so we have a baseline
-    # for each combination of params
-        # Recreate the solver with new params
-        # solve_vrp, extend and override so I can get cost
-            # test with brute force, compare with hardcoded custom route before we go quantum
-        # Append analysis data to file
-    # Save matplotlib heatmap to data folder
-    # Save a contour plot if have time
-    # Save something to judge individual hyperparams
-    f = open(os.path.join("data", sys.argv[1]), "x")
-    f.write("Now the file has more content")
-    f.close()
+    # Read our 3 inputs
+    print(get_payload(sys.argv[1]))
+    print(get_tuning_parameters(sys.argv[2]))
+    print(get_solver_parameters(sys.argv[3]))
+
+    # TODO Write to file, Check if it can write before we start
+    # Have a function for this, use argv[4]
+    # TODO Make the clusterers, distance finder via factories
+    # Will have to use results from file getters
+    # TODO Setup brute force so we have a baseline
+    # Hardcoded brute force search, assume recursive clustering is impossible
+    # TODO for each combination of params
+    # Uses tuning_params list to iterate over
+        # TODO Recreate the solver with new params
+        # Should only be D-Wave solver being resetted
+        # TODO solve_vrp, extend and override so I can get cost
+            # NOTE test with brute force, compare with hardcoded custom route before we go quantum
+            # Store whatever our performance metrics are (distance relative to BFS)
+        # TODO Append analysis data to file
+    # TODO Save matplotlib heatmap to data folder
+    # Read the output file for this?
+    # TODO Save a contour plot if have time
+    # Read the output file for this?
+    # TODO Save something to judge individual hyperparams
+    # Read the output file for this?
 
 
 # Read payload
-def read_payload(file_path : str) -> list[Order]:
-    order_list = []
+def get_payload(file_path : str) -> list[Order]:
     with open(os.path.join("data", file_path), 'r') as file:
         data = RouteInput(**json.load(file))
         data = orders_to_cartesian(data.orders)
@@ -125,15 +130,12 @@ def get_tuning_parameters(file_path : str) -> list:
                 key = key.strip()
                 value = ast.literal_eval(value.strip())
                 result[key] = value
-    print(type(result.get("cost_constraint_ratio")))
     result = get_combinations(result.get("cost_constraint_ratio"), result.get("chain_strength"))
-    print(result)
     return result
 
 # TODO Can just combine this with above
 def get_combinations(list1, list2):
     list3 = list(itertools.product(list1, list2))
-    #print(list3)
     return list3
 
 # Read D-Wave settings
@@ -146,13 +148,11 @@ def get_solver_parameters(file_path : str) -> dict:
                 key, value = line.split(':', 1)
                 key = key.strip()
                 value = ast.literal_eval(value.strip())  # Convert value to the appropriate type
-                print(value)
-                print(type(value))
                 parameters[key] = value
     # TODO Validate Params before return
-    print(parameters)
     return parameters
 
-get_solver_parameters("solver_params")
+wrapper()
+"""get_solver_parameters("solver_params")
 get_tuning_parameters("tuning_params")
-print(read_payload("Locations.json"))
+read_payload("Locations.json")"""
