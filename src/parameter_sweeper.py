@@ -2,6 +2,9 @@ import ast
 import json
 import numpy as np
 
+from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
+from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
+
 """
 Optimal parameters are unknown, we must incorporate a method to sweep for optimal D-Wave parameters. Add everything to a separate folder. Its goal must be able to provide sufficient data to allow parameter sets to be analysed.
 
@@ -57,7 +60,6 @@ def orders_to_cartesian(
     list of Order
         Orders with additional x, y, z coordinate info
     """
-    # NOTE: Doesn't cohere well with routing code, being an input pre-processor
 
     r = 6371  # Radius of the earth
     cartesian_orders = []
@@ -80,18 +82,25 @@ def orders_to_cartesian(
 # Call with args, output will be in data folder
 def wrapper():
     # Read our 3 inputs
-    print(get_payload(sys.argv[1]))
-    print(get_tuning_parameters(sys.argv[2]))
-    print(get_solver_parameters(sys.argv[3]))
-    if len(sys.argv) < 5:
-        print("Have argv[4]")
-    # TODO Read Exclusion List
+    orders = get_payload(sys.argv[1])
+    tuning_sets = get_tuning_parameters(sys.argv[2])
+    solver_parameters = get_solver_parameters(sys.argv[3])
+    if len(sys.argv) == 6:
+        print("Have argv[5]")
+        # TODO Read Exclusion List
+        # Have a function for this, use argv[5]
 
-    # TODO Write to file, Check if it can write before we start
-    # Have a function for this, use argv[4]
-    # TODO Make the clusterers, distance finder via factories
-    # Will have to use results from file getters
+    # Write to file, Check if we can even write in the first place
+    with open(os.path.join("data", sys.argv[4]), 'w') as file:
+        file.write("Parameter testing test1")
+
+    # Making necessary classes before route generation
+    vehicle_clusterer = KMeansClusterer(solver_parameters.get("max_solve_size"))
+    subclusterer = KMeansClusterer(solver_parameters.get("max_solve_size"))
+    distance_finder = distance_factory.create("cartesian")
+
     # TODO Setup brute force so we have a baseline
+    brute_solver = BruteForceSolver()
     # Hardcoded brute force search, assume recursive clustering is impossible
     # TODO for each combination of params
     # Uses tuning_params list to iterate over
