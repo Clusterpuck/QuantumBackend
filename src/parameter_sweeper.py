@@ -129,6 +129,7 @@ def wrapper():
                 'cost_constraint_ratio': [tuning_set[0]],
                 'chain_strength': [tuning_set[1]],
                 'relative_cost': [relative_cost],
+                'trial': [trial+1], #TODO Make it so the trial loop is from 1 to 3 so I don't have to keep adding 1
                 'route': [route]
              })
             file_exists = os.path.isfile(os.path.join('data', sys.argv[4] + ".csv"))
