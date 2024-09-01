@@ -8,6 +8,7 @@ from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
 from route_optimisation.route_solver.dwave_solver import DWaveSolver
 from dwave.system.samplers import DWaveSampler
 from dwave.system.composites import EmbeddingComposite
+from route_optimisation.distance_matrix.cartesian_distance_finder import CartesianDistanceFinder
 
 """
 Optimal parameters are unknown, we must incorporate a method to sweep for optimal D-Wave parameters. Add everything to a separate folder. Its goal must be able to provide sufficient data to allow parameter sets to be analysed.
@@ -104,7 +105,12 @@ def wrapper():
     distance_finder = distance_factory.create("cartesian")
 
     # TODO Setup brute force so we have a baseline
+    dm = CartesianDistanceFinder()
+    nodes = [(o, o) for o in orders]
+    print(dm.build_matrix(nodes))
+    matrix = dm.build_matrix(nodes)
     brute_solver = BruteForceSolver()
+    print(brute_solver.solve(matrix))
 
     # Hardcoded brute force search
     baseline = ExtendedRecursiveCFRS(vehicle_clusterer,
