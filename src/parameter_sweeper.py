@@ -112,8 +112,9 @@ def wrapper():
         total_relative_cost = 0
         total_succeeds = 0
         for trial in range(3):
-            solver = create_solver(tuning_set, solver_parameters)
+            solver = create_solver(tuning_set, solver_parameters) #TODO Move this solver up a level
             relative_cost = 0
+            cost = 0
             try:
                 #route, cost = brute_solver.solve(matrix)
                 route, cost = solver.solve(matrix)
