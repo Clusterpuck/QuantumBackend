@@ -47,6 +47,22 @@ def plot_graph():
     plt.ylabel('Latitude (km)')
     plt.grid(True)
     plt.show()
+    
+
+def create_graph(locations_file, route, folder_name, file_name):
+    locations_path = os.path.join("data", locations_file)
+    route = [route]
+
+    lats, longs, orders = reformat_locations(locations_path)
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(longs, lats, color='blue', marker='o')
+    __add_lines(route, orders)
+    plt.title('Equirectangular Projection Scatter Plot')
+    plt.xlabel('Longitude (km)')
+    plt.ylabel('Latitude (km)')
+    plt.grid(True)
+    plt.savefig(os.path.join('data', folder_name, file_name + ".png"), dpi=300, bbox_inches='tight')
 
 def reformat(locations_path, routes_path):
     """
@@ -92,6 +108,49 @@ def reformat(locations_path, routes_path):
 
     return lats, longs, orders, routes
 
+def reformat_locations(locations_path):
+    # TODO UPDATE THIS DOCSTRING
+    """
+    Extracts the latitudes, longitudes, locations and routes
+    from the JSON files
+
+    Parameters
+    ----------
+    locations_path : str
+        The name of the locations file at src/data
+        The file should be in the format of RouteInput
+    routes_path : routes
+        the name of the routes file at src/data
+        The file should be a list of lists containing ordered Order_ids
+
+    Returns
+    -------
+    lats : np.array
+        List of latitudes for orders 
+    longs : np.array
+        List of latitudes for orders
+    orders : dict[int, dict[str,float]]
+        Key represents order_id
+        Value (inner dictionary) is in the format of:
+            lat: float
+            lon: float
+        Example: {16: {'lat': -31.899364, 'lon': 115.801288}
+    routes : list[list[int]]
+        Contains a list of lists of routes in sorted order
+        Outer lists contains the list of routes
+        Inner list contains the orders in sorted order
+    """
+    with open(locations_path, 'r', encoding='utf-8') as file:
+        locations = json.load(file)
+
+    locations = RouteInput(**locations)
+    lats = [location.lat for location in locations.orders]
+    longs = [location.lon for location in locations.orders]
+    lats, longs = erp.equi_rect_project(lats, longs)
+    orders = {order.order_id: {'lat': order.lat, 'lon': order.lon} for order in locations.orders}
+
+    return lats, longs, orders
+
 def __add_lines(routes, orders_dict):
     """
     Adds arrows for each edge in routes list
@@ -130,4 +189,6 @@ def __add_lines(routes, orders_dict):
         plt.annotate('', xy=(end_longs[i], end_lats[i]), xytext=(start_longs[i], start_lats[i]),
                  arrowprops=dict(facecolor='red', shrink=0.15, headlength=7, headwidth=7, width=3))
 
-plot_graph()
+#plot_graph()
+#temp_list = [[3, 0, 1, 2, 5, 6, 4]]
+#create_graph("Locations.json", temp_list, "testFolder", "testFile")

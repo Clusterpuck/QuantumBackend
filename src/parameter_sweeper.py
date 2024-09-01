@@ -36,6 +36,7 @@ from vehicle_clusterer_factory import VehicleClustererFactory
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from visualise_deliveries import create_graph
 
 vehicle_clusterer_factory = VehicleClustererFactory()
 distance_factory = DistanceFactory()
@@ -110,9 +111,8 @@ def wrapper():
     for tuning_set in tuning_sets:
         total_relative_cost = 0
         total_succeeds = 0
-        for x in range(3):
+        for trial in range(3):
             #solver = create_solver(tuning_set, solver_parameters)
-            route, cost = brute_solver.solve(matrix)
             try:
                 route, cost = brute_solver.solve(matrix)
                 #route, cost = solver.solve(matrix)
@@ -133,6 +133,8 @@ def wrapper():
              })
             file_exists = os.path.isfile(os.path.join('data', sys.argv[4] + ".csv"))
             trial_df.to_csv(os.path.join('data', sys.argv[4] + ".csv"), index=False, mode='a', header=not file_exists)
+            filename = str(tuning_set[0]) + "_" + str(tuning_set[1]) + "_" + str(trial+1) + "_" + str(relative_cost)
+            create_graph(sys.argv[1], route, "sweep_routes", filename)
 
         if total_succeeds == 0:
             total_succeeds = 1
