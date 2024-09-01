@@ -108,7 +108,7 @@ def wrapper():
     results = []
     # Uses tuning_params list to iterate over
     for tuning_set in tuning_sets:
-        total_relative_cost = -1
+        total_relative_cost = 0
         total_succeeds = 0
         for x in range(3):
             #solver = create_solver(tuning_set, solver_parameters)
