@@ -108,20 +108,44 @@ def wrapper():
     results = []
     # Uses tuning_params list to iterate over
     for tuning_set in tuning_sets:
-        solver = create_solver(set, solver_parameters)
-        route, cost = brute_solver.solve(matrix)
-        """route, cost = solver.solve(matrix)"""
-        relative_cost = cost - optimal_cost
-        print(tuning_set[0], tuning_set[1], relative_cost, route)
+        total_relative_cost = -1
+        total_succeeds = 0
+        for x in range(3):
+            #solver = create_solver(tuning_set, solver_parameters)
+            route, cost = brute_solver.solve(matrix)
+            try:
+                route, cost = brute_solver.solve(matrix)
+                #route, cost = solver.solve(matrix)
+            except RuntimeError:
+                route = []
+                cost = optimal_cost - 1
+                total_succeeds += 1
+            else:
+                total_succeeds += 1
+                relative_cost = cost - optimal_cost
+                total_relative_cost += relative_cost    
+            print(tuning_set[0], tuning_set[1], relative_cost, route)
+            trial_df = df = pd.DataFrame({
+                'cost_constraint_ratio': [tuning_set[0]],
+                'chain_strength': [tuning_set[1]],
+                'relative_cost': [relative_cost],
+                'route': [route]
+             })
+            file_exists = os.path.isfile(os.path.join('data', sys.argv[4] + ".csv"))
+            trial_df.to_csv(os.path.join('data', sys.argv[4] + ".csv"), index=False, mode='a', header=not file_exists)
+
+        if total_succeeds == 0:
+            total_succeeds = 1
+        avg_cost = total_relative_cost/total_succeeds
         df = pd.DataFrame({
             'cost_constraint_ratio': [tuning_set[0]],
             'chain_strength': [tuning_set[1]],
-            'relative_cost': [relative_cost],
-            'route': [route]
+            'relative_cost': [avg_cost]
         })
         results.append(df)
+        
     results_df = pd.concat(results, ignore_index=True)
-    results_df.to_csv(os.path.join('data', sys.argv[4] + ".csv"), index=False)
+    results_df.to_csv(os.path.join('data', sys.argv[4] + "avg.csv"), index=False)
     create_heatmap(results_df)
     create_contour_plot(results_df)
     # TODO Save something to judge individual hyperparams?
@@ -161,6 +185,8 @@ def create_solver(set, solver_params : dict) -> DWaveSolver:
     is_circuit = solver_params.get('is_circuit')
     scale_factor = set[0]
     chain_value = set[1]
+    constraint_factor = cost_factor * scale_factor
+    print("CREATING: ", scale_factor, chain_value)
     #print(cost_factor, num_runs, max_retries, is_circuit, scale_factor, chain_value)
     return DWaveSolver(
                 EmbeddingComposite(
@@ -171,7 +197,7 @@ def create_solver(set, solver_params : dict) -> DWaveSolver:
                     )
                 ),
                 cost_factor= cost_factor,
-                constraint_factor= cost_factor * scale_factor,
+                constraint_factor= constraint_factor,
                 num_runs= num_runs,
                 max_retries= max_retries,
                 is_circuit= is_circuit,
