@@ -26,6 +26,7 @@ Write results to file
 Cost metric will be distance relative to BFS
 """
 # python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params" "output"
+# TODO Fix this RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`). Consider using `matplotlib.pyplot.close()`.
 import itertools
 import os
 import sys
@@ -41,10 +42,6 @@ from visualise_deliveries import create_graph
 vehicle_clusterer_factory = VehicleClustererFactory()
 distance_factory = DistanceFactory()
 solver_factory = SolverFactory()
-# Args should be
-    # File path for payload
-    # File path for params
-    # File path for output
 
 # Helper functions
 # TODO Grab this from some other file
@@ -87,6 +84,7 @@ def orders_to_cartesian(
     return cartesian_orders
 
 # Call with args, output will be in data folder
+# TODO This needs to be reworked, looks terrible
 def wrapper():
     # Read our 3 inputs
     orders = get_payload(sys.argv[1])
@@ -111,8 +109,8 @@ def wrapper():
     for tuning_set in tuning_sets:
         total_relative_cost = 0
         total_succeeds = 0
+        solver = create_solver(tuning_set, solver_parameters)
         for trial in range(3):
-            solver = create_solver(tuning_set, solver_parameters) #TODO Move this solver up a level
             relative_cost = 0
             cost = 0
             try:
@@ -139,10 +137,13 @@ def wrapper():
             trial_df.to_csv(os.path.join('data', sys.argv[4] + ".csv"), index=False, mode='a', header=not file_exists)
             filename = str(tuning_set[0]) + "_" + str(tuning_set[1]) + "_" + str(trial+1) + "_" + str(relative_cost)
             create_graph(sys.argv[1], route, "sweep_routes", filename)
+            #TODO Checker for best route
 
         if total_succeeds == 0:
             total_succeeds = 1
-        avg_cost = total_relative_cost/total_succeeds
+            avg_cost = -1
+        else:
+            avg_cost = total_relative_cost/total_succeeds
         df = pd.DataFrame({
             'cost_constraint_ratio': [tuning_set[0]],
             'chain_strength': [tuning_set[1]],
@@ -153,8 +154,9 @@ def wrapper():
     results_df = pd.concat(results, ignore_index=True)
     results_df.to_csv(os.path.join('data', sys.argv[4] + "avg.csv"), index=False)
     create_heatmap(results_df)
+    # TODO create heatmap for best routes
     create_contour_plot(results_df)
-    # TODO Save something to judge individual hyperparams?
+    # TODO create contour_plot for best routes
     
 def create_heatmap(results_df) -> None:
     results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='relative_cost')
