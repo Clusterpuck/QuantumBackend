@@ -2,8 +2,6 @@ import ast
 import json
 import numpy as np
 
-from extended_recursive_cfrs import ExtendedRecursiveCFRS
-from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
 from route_optimisation.route_solver.dwave_solver import DWaveSolver
 from dwave.system.samplers import DWaveSampler
@@ -27,7 +25,7 @@ Call generate routes function with D-Wave solver of a configuration
 Write results to file
 Cost metric will be distance relative to BFS
 """
-# python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params"
+# python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params" "output"
 import itertools
 import os
 import sys
@@ -35,6 +33,9 @@ from distance_factory import DistanceFactory
 from pydantic_models import RouteInput, Order, OrderInput
 from solver_factory import SolverFactory
 from vehicle_clusterer_factory import VehicleClustererFactory
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 vehicle_clusterer_factory = VehicleClustererFactory()
 distance_factory = DistanceFactory()
@@ -90,55 +91,63 @@ def wrapper():
     orders = get_payload(sys.argv[1])
     tuning_sets = get_tuning_parameters(sys.argv[2])
     solver_parameters = get_solver_parameters(sys.argv[3])
-    if len(sys.argv) == 6:
-        print("Have argv[5]")
-        # TODO Read Exclusion List
-        # Have a function for this, use argv[5]
+    #TODO Function for preliminary information
 
-    # Write to file, Check if we can even write in the first place
+    # Setting the ground truth optimal route and cost
+    dm = CartesianDistanceFinder()
+    matrix = dm.build_matrix(orders)
+    brute_solver = BruteForceSolver()
+    optimal_route, optimal_cost = brute_solver.solve(matrix)
+
+    #TODO Function for preliminary information
     with open(os.path.join("data", sys.argv[4]), 'w') as file:
         file.write("Parameter testing test1")
-
-    # Making necessary classes before route generation
-    vehicle_clusterer = KMeansClusterer(1)
-    subclusterer = KMeansClusterer(solver_parameters.get("max_solve_size"))
-    distance_finder = distance_factory.create("cartesian")
-
-    # TODO Setup brute force so we have a baseline
-    dm = CartesianDistanceFinder()
-    nodes = [(o, o) for o in orders]
-    print(dm.build_matrix(nodes))
-    matrix = dm.build_matrix(nodes)
-    brute_solver = BruteForceSolver()
-    print(brute_solver.solve(matrix))
-
-    # Hardcoded brute force search
-    baseline = ExtendedRecursiveCFRS(vehicle_clusterer,
-                                     subclusterer,
-                                     distance_finder,
-                                     brute_solver,
-                                     solver_parameters.get("max_solve_size"))
     
-    x, y, base_cost = baseline.solve_vrp(orders)
-
+    results = []
     # Uses tuning_params list to iterate over
     for set in tuning_sets:
         #solver = create_solver(set)
-        vrp_solver = ExtendedRecursiveCFRS(vehicle_clusterer,subclusterer,distance_finder,brute_solver,solver_parameters.get("max_solve_size"))
-        vehicle_routes, raw_tree, cost = vrp_solver.solve_vrp(orders)
-            # NOTE test with brute force, compare with hardcoded custom route before we go quantum
-            # Store whatever our performance metrics are (distance relative to BFS)
-        # TODO Append analysis data to file
-    # TODO Save matplotlib heatmap to data folder
-    # Read the output file for this?
-    # TODO Save a contour plot if have time
-    # Read the output file for this?
-    # TODO Save something to judge individual hyperparams
-    # Read the output file for this?
-    """print("FROM BASELINE")
-    print(x)
-    display_cluster_tree(y, 0)
-    print(cost)"""
+        route, cost = brute_solver.solve(matrix)
+        relative_cost = cost - optimal_cost
+        df = pd.DataFrame({
+            'cost_constraint_ratio': [set[0]],
+            'chain_strength': [set[1]],
+            'relative_cost': [relative_cost],
+            'route': [route]
+        })
+        results.append(df)
+    results_df = pd.concat(results, ignore_index=True)
+    results_df.to_csv(os.path.join('data', sys.argv[4] + ".csv"), index=False)
+    create_heatmap(results_df)
+    create_contour_plot(results_df)
+    # TODO Save something to judge individual hyperparams?
+    
+def create_heatmap(results_df) -> None:
+    results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='relative_cost')
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(results_df, annot=True, cmap='coolwarm_r')
+
+    plt.title('Heatmap')
+    plt.xlabel('chain_strength')
+    plt.ylabel('cost_constraint_ratio')
+    plt.savefig(os.path.join('data', sys.argv[4] + '_heatmap'), dpi=300, bbox_inches='tight')
+
+def create_contour_plot(results_df):
+    results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='relative_cost')
+
+    X = results_df.columns.values
+    Y = results_df.index.values
+    X, Y = np.meshgrid(X, Y) 
+    Z = results_df.values
+
+    plt.figure(figsize=(8, 6))
+    contour = plt.contourf(X, Y, Z, levels=10, cmap='coolwarm_r')
+    plt.colorbar(contour)
+    plt.title('Seaborn Contour Plot Example')
+    plt.xlabel('chain_strength')
+    plt.ylabel('cost_constraint_ratio')
+    plt.savefig(os.path.join('data', sys.argv[4] + '_contours'), dpi=300, bbox_inches='tight')
 
 
 def create_solver(set) -> DWaveSolver:
@@ -159,27 +168,14 @@ def create_solver(set) -> DWaveSolver:
             )
 
 # Read payload
-def get_payload(file_path : str) -> list[Order]:
+def get_payload(file_path : str) -> list[tuple[Order, Order]]:
     with open(os.path.join("data", file_path), 'r') as file:
         data = RouteInput(**json.load(file))
-        data = orders_to_cartesian(data.orders)
-        return data
-    
-def display_cluster_tree(deep_list: list, depth: int) -> None:
-    # Assumes correctly formatted cluster tree
-    if len(deep_list) != 0:
-        if isinstance(deep_list[0], list):
-            # Keep searching for list[items] level
-            print("  " * depth + f"Split: {depth}")
-            for inner_list in deep_list:
-                display_cluster_tree(inner_list, depth + 1)
-        else:
-            # Prints indented cluster leaf
-            print("  " * depth + f"Leaf: {[o.order_id for o in deep_list]}")
-        # Ignore empty branches (though that could be a bug if so)
-    
-    # Read payload file, get orders
-    # Use orders_to_cartesian before returning
+        orders = orders_to_cartesian(data.orders)
+        orders = [(o, o) for o in orders]
+        if len(orders) > 9:
+            raise ValueError("Potentially too many orders being iterated")
+        return orders
 
 # Read parameters
 def get_tuning_parameters(file_path : str) -> list:
@@ -197,7 +193,6 @@ def get_tuning_parameters(file_path : str) -> list:
     result = get_combinations(result.get("cost_constraint_ratio"), result.get("chain_strength"))
     return result
 
-# TODO Can just combine this with above
 def get_combinations(list1, list2):
     list3 = list(itertools.product(list1, list2))
     return list3
@@ -213,10 +208,7 @@ def get_solver_parameters(file_path : str) -> dict:
                 key = key.strip()
                 value = ast.literal_eval(value.strip())  # Convert value to the appropriate type
                 parameters[key] = value
-    # TODO Validate Params before return
+    # TODO Validate Params before return?
     return parameters
 
 wrapper()
-"""get_solver_parameters("solver_params")
-get_tuning_parameters("tuning_params")
-read_payload("Locations.json")"""
