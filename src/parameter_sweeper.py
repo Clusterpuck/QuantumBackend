@@ -112,10 +112,11 @@ def wrapper():
         total_relative_cost = 0
         total_succeeds = 0
         for trial in range(3):
-            #solver = create_solver(tuning_set, solver_parameters)
+            solver = create_solver(tuning_set, solver_parameters)
+            relative_cost = 0
             try:
-                route, cost = brute_solver.solve(matrix)
-                #route, cost = solver.solve(matrix)
+                #route, cost = brute_solver.solve(matrix)
+                route, cost = solver.solve(matrix)
             except RuntimeError:
                 route = []
                 cost = optimal_cost - 1
@@ -129,6 +130,7 @@ def wrapper():
                 'cost_constraint_ratio': [tuning_set[0]],
                 'chain_strength': [tuning_set[1]],
                 'relative_cost': [relative_cost],
+                'cost': [cost],
                 'trial': [trial+1], #TODO Make it so the trial loop is from 1 to 3 so I don't have to keep adding 1
                 'route': [route]
              })
