@@ -91,27 +91,31 @@ def wrapper():
     orders = get_payload(sys.argv[1])
     tuning_sets = get_tuning_parameters(sys.argv[2])
     solver_parameters = get_solver_parameters(sys.argv[3])
-    #TODO Function for preliminary information
 
     # Setting the ground truth optimal route and cost
     dm = CartesianDistanceFinder()
     matrix = dm.build_matrix(orders)
     brute_solver = BruteForceSolver()
     optimal_route, optimal_cost = brute_solver.solve(matrix)
+    print(f"Optimal Route: {optimal_route} costs {optimal_cost}")
 
-    #TODO Function for preliminary information
-    with open(os.path.join("data", sys.argv[4]), 'w') as file:
-        file.write("Parameter testing test1")
+    with open(os.path.join("data", sys.argv[4] + "_parameters.txt"), 'w') as file:
+        for order in orders:
+            file.write(str(order[0]) + '\n')
+        file.write(str(tuning_sets) + '\n')
+        file.write(str(solver_parameters) + '\n')
     
     results = []
     # Uses tuning_params list to iterate over
-    for set in tuning_sets:
-        #solver = create_solver(set)
+    for tuning_set in tuning_sets:
+        solver = create_solver(set, solver_parameters)
         route, cost = brute_solver.solve(matrix)
+        """route, cost = solver.solve(matrix)"""
         relative_cost = cost - optimal_cost
+        print(tuning_set[0], tuning_set[1], relative_cost, route)
         df = pd.DataFrame({
-            'cost_constraint_ratio': [set[0]],
-            'chain_strength': [set[1]],
+            'cost_constraint_ratio': [tuning_set[0]],
+            'chain_strength': [tuning_set[1]],
             'relative_cost': [relative_cost],
             'route': [route]
         })
@@ -150,10 +154,14 @@ def create_contour_plot(results_df):
     plt.savefig(os.path.join('data', sys.argv[4] + '_contours'), dpi=300, bbox_inches='tight')
 
 
-def create_solver(set) -> DWaveSolver:
-    base_cost = 10 # For the sake of consistency in testing, please don't change this
+def create_solver(set, solver_params : dict) -> DWaveSolver:
+    cost_factor = solver_params.get('cost_factor')
+    num_runs = solver_params.get('num_runs')
+    max_retries = solver_params.get('max_retries')
+    is_circuit = solver_params.get('is_circuit')
     scale_factor = set[0]
     chain_value = set[1]
+    #print(cost_factor, num_runs, max_retries, is_circuit, scale_factor, chain_value)
     return DWaveSolver(
                 EmbeddingComposite(
                     DWaveSampler(
@@ -162,9 +170,12 @@ def create_solver(set) -> DWaveSolver:
                         solver=os.environ["DWAVE_SOLVER"],
                     )
                 ),
-                cost_factor = base_cost,
-                constraint_factor = base_cost * scale_factor,
-                chain_strength = chain_value
+                cost_factor= cost_factor,
+                constraint_factor= cost_factor * scale_factor,
+                num_runs= num_runs,
+                max_retries= max_retries,
+                is_circuit= is_circuit,
+                chain_strength= chain_value
             )
 
 # Read payload
