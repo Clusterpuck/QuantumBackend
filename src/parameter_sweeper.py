@@ -57,12 +57,7 @@ def main():
     solver_parameters = get_solver_parameters(solver_file)
     
     process(orders, tuning_sets, solver_parameters, output_file)
-
-    post_process(output_file)
-    # Create avg file, heatmap, contour plot
-    # Create best file, heatmap, contour plot
-    # Create heatmap of failed occurences
-    # Create folder of routes
+    post_process(output_file, orders_file)
 
 
 def orders_to_cartesian(
@@ -143,7 +138,7 @@ def process(orders, tuning_sets, solver_parameters, output_file):
             trial_df.to_csv(os.path.join('data', output_file + ".csv"), index=False, mode='a', header=not file_exists)
     print("COMPLETED QUANTUM ROUTES")
 
-def post_process(output_file):
+def post_process(output_file, orders_file):
     df = pd.read_csv(os.path.join("data", output_file + ".csv"))
     filtered_df = df[df['relative_cost'] != -1]
     
@@ -162,15 +157,20 @@ def post_process(output_file):
     
 
     failed_routes_df = df[df['relative_cost'] == -1]
-    failed_routes_count = failed_routes_df.groupby(['cost_constraint_ratio', 'chain_strength']).size().reset_index(name='failed_routes_count')
-    save_heatmap(failed_routes_count, "fails", 'cost_constraint_ratio', 'chain_strength', 'failed_routes_count', output_file)
-    
-    # visualise deliveries
-    pass
+    if not failed_routes_df.empty:
+        failed_routes_count = failed_routes_df.groupby(['cost_constraint_ratio', 'chain_strength']).size().reset_index(name='failed_routes_count')
+        save_heatmap(failed_routes_count, "fails", 'cost_constraint_ratio', 'chain_strength', 'failed_routes_count', output_file)
 
-# Call with args, output will be in data folder
-# TODO This needs to be reworked, looks terrible
-# TODO attach argv's to variables rather than directly calling
+    # visualise deliveries
+    for _, row in df.iterrows():
+        cost_constraint_ratio = str(row['cost_constraint_ratio'])
+        chain_strength = str(row['chain_strength'])
+        trial = str(row['trial'])
+        relative_cost = str(row['relative_cost'])
+        route_list = ast.literal_eval(row['route'])
+        filename = cost_constraint_ratio + "_" + chain_strength + "_" + trial + "_" + relative_cost
+        create_graph(orders_file, route_list, "sweep_routes", filename)
+
 """
 def wrapper():
     # Read our 3 inputs
@@ -282,6 +282,7 @@ def create_heatmap(results_df : pd.DataFrame, name : str) -> None:
     plt.close(fig)
 
 def save_heatmap(results_df : pd.DataFrame, name : str, index, columns, values, outputfile) -> None:
+    print(results_df)
     results_df = results_df.pivot(index=index, columns=columns, values=values)
 
     fig = plt.figure(figsize=(8, 6))
