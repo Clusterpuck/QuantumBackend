@@ -121,8 +121,8 @@ def wrapper():
                 #route, cost = solver.solve(matrix)
             except RuntimeError:
                 route = []
-                cost = optimal_cost - 1
-                relative_cost = cost - optimal_cost # NOTE Repeated line
+                cost = -1
+                relative_cost = -1 # NOTE Repeated line
             else:
                 total_succeeds += 1
                 # On first success OR better cost, update best
@@ -152,8 +152,10 @@ def wrapper():
         if total_succeeds == 0:
             total_succeeds = 1 # Avoid divide by 0
             avg_cost = best_cost = -1
+            r_cost = -1
         else:
             avg_cost = total_relative_cost/total_succeeds
+            r_cost = best_cost-optimal_cost
         df = pd.DataFrame({
             'cost_constraint_ratio': [tuning_set[0]],
             'chain_strength': [tuning_set[1]],
@@ -162,7 +164,7 @@ def wrapper():
         best_df = pd.DataFrame({
             'cost_constraint_ratio': [tuning_set[0]],
             'chain_strength': [tuning_set[1]],
-            'relative_cost': [best_cost-optimal_cost],
+            'relative_cost': [r_cost],
             'cost': [best_cost],
             'trial': [best_trial],
             'best_route': [best_route]
@@ -186,8 +188,8 @@ def create_heatmap(results_df : pd.DataFrame, name : str) -> None:
     results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='relative_cost')
 
     fig = plt.figure(figsize=(8, 6))
-    sns.heatmap(results_df, annot=True, cmap='coolwarm_r')
-
+    ax = sns.heatmap(results_df, annot=True, cmap='coolwarm_r')
+    ax.invert_yaxis()
     plt.title('Heatmap')
     plt.xlabel('chain_strength')
     plt.ylabel('cost_constraint_ratio')
