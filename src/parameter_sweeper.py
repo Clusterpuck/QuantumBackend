@@ -58,10 +58,11 @@ def main():
     
     process(orders, tuning_sets, solver_parameters, output_file)
 
-    post_process()
+    post_process(output_file)
     # Create avg file, heatmap, contour plot
     # Create best file, heatmap, contour plot
     # Create heatmap of failed occurences
+    # Create folder of routes
 
 
 def orders_to_cartesian(
@@ -142,8 +143,31 @@ def process(orders, tuning_sets, solver_parameters, output_file):
             trial_df.to_csv(os.path.join('data', output_file + ".csv"), index=False, mode='a', header=not file_exists)
     print("COMPLETED QUANTUM ROUTES")
 
-def post_process():
+def post_process(output_file):
+    df = pd.read_csv(os.path.join("data", output_file + ".csv"))
+    filtered_df = df[df['relative_cost'] != -1]
+    
+    average_df = filtered_df.groupby(['cost_constraint_ratio', 'chain_strength']).agg({
+        'relative_cost': 'mean'
+    }).reset_index()
+    save_heatmap(average_df, "avg", 'cost_constraint_ratio', 'chain_strength', 'relative_cost', output_file)
+    save_contour_plot(average_df, "avg", 'cost_constraint_ratio', 'chain_strength', 'relative_cost', output_file)
+    average_df.to_csv(os.path.join('data', output_file + "avg.csv"), index=False)
+
+    idx = filtered_df.groupby(['cost_constraint_ratio', 'chain_strength'])['relative_cost'].idxmin()
+    min_relative_cost_df = filtered_df.loc[idx].reset_index(drop=True)
+    save_heatmap(min_relative_cost_df, "best", 'cost_constraint_ratio', 'chain_strength', 'relative_cost', output_file)
+    save_contour_plot(min_relative_cost_df, "best", 'cost_constraint_ratio', 'chain_strength', 'relative_cost', output_file)
+    min_relative_cost_df.to_csv(os.path.join('data', output_file + "best.csv"), index=False)
+    
+
+    failed_routes_df = df[df['relative_cost'] == -1]
+    failed_routes_count = failed_routes_df.groupby(['cost_constraint_ratio', 'chain_strength']).size().reset_index(name='failed_routes_count')
+    save_heatmap(failed_routes_count, "fails", 'cost_constraint_ratio', 'chain_strength', 'failed_routes_count', output_file)
+    
+    # visualise deliveries
     pass
+
 # Call with args, output will be in data folder
 # TODO This needs to be reworked, looks terrible
 # TODO attach argv's to variables rather than directly calling
@@ -257,6 +281,18 @@ def create_heatmap(results_df : pd.DataFrame, name : str) -> None:
     plt.savefig(os.path.join('data', sys.argv[4] + '_heatmap_' + name), dpi=300, bbox_inches='tight')
     plt.close(fig)
 
+def save_heatmap(results_df : pd.DataFrame, name : str, index, columns, values, outputfile) -> None:
+    results_df = results_df.pivot(index=index, columns=columns, values=values)
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = sns.heatmap(results_df, annot=True, cmap='coolwarm_r')
+    ax.invert_yaxis()
+    plt.title('Heatmap')
+    plt.xlabel('chain_strength')
+    plt.ylabel('cost_constraint_ratio')
+    plt.savefig(os.path.join('data', outputfile + '_heatmap_' + name), dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
 def create_heatmap2(results_df : pd.DataFrame, name : str) -> None:
     results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='failed_routes_count')
 
@@ -284,6 +320,23 @@ def create_contour_plot(results_df : pd.DataFrame, name : str) -> None:
     plt.xlabel('chain_strength')
     plt.ylabel('cost_constraint_ratio')
     plt.savefig(os.path.join('data', sys.argv[4] + '_contours_' + name), dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+def save_contour_plot(results_df : pd.DataFrame, name : str, index, columns, values, outputfile):
+    results_df = results_df.pivot(index=index, columns=columns, values=values)
+
+    X = results_df.columns.values
+    Y = results_df.index.values
+    X, Y = np.meshgrid(X, Y) 
+    Z = results_df.values
+
+    fig = plt.figure(figsize=(8, 6))
+    contour = plt.contourf(X, Y, Z, levels=10, cmap='coolwarm_r')
+    plt.colorbar(contour)
+    plt.title('Seaborn Contour Plot Example')
+    plt.xlabel('chain_strength')
+    plt.ylabel('cost_constraint_ratio')
+    plt.savefig(os.path.join('data', outputfile + '_contours_' + name), dpi=300, bbox_inches='tight')
     plt.close(fig)
 
 
