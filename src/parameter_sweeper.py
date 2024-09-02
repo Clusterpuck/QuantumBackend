@@ -46,6 +46,24 @@ solver_factory = SolverFactory()
 
 # Helper functions
 # TODO Grab this from some other file
+def main():
+    orders_file = sys.argv[1]
+    tuning_file = sys.argv[2]
+    solver_file = sys.argv[3]
+    output_file = sys.argv[4]
+
+    orders = get_payload(orders_file)
+    tuning_sets = get_tuning_parameters(tuning_file)
+    solver_parameters = get_solver_parameters(solver_file)
+    
+    process(orders, tuning_sets, solver_parameters, output_file)
+
+    post_process()
+    # Create avg file, heatmap, contour plot
+    # Create best file, heatmap, contour plot
+    # Create heatmap of failed occurences
+
+
 def orders_to_cartesian(
     orders: list[OrderInput],
 ) -> list[Order]:
@@ -84,9 +102,52 @@ def orders_to_cartesian(
 
     return cartesian_orders
 
+def process(orders, tuning_sets, solver_parameters, output_file):
+    
+    matrix = CartesianDistanceFinder().build_matrix(orders)
+    brute_solver = BruteForceSolver()
+    optimal_route, optimal_cost = brute_solver.solve(matrix)
+    print(f"Optimal Route: {optimal_route} costs {optimal_cost}")
+
+    # Log the contents of the file inputs
+    write_parameters(orders, tuning_sets, solver_parameters)
+
+    for tuning_set in tuning_sets:
+        # Quantum
+        #solver = create_solver(tuning_set, solver_parameters)
+        for trial in range(1, 6): # 1-5
+            relative_cost = 0
+            cost = 0
+            try:
+                route, cost = brute_solver.solve(matrix)
+                # Quantum
+                #route, cost = solver.solve(matrix)
+            except RuntimeError:
+                route = []
+                cost = -1
+                relative_cost = -1
+            else:
+                relative_cost = cost - optimal_cost
+
+            print(tuning_set[0], tuning_set[1], relative_cost, route)
+            trial_df = pd.DataFrame({
+                'cost_constraint_ratio': [tuning_set[0]],
+                'chain_strength': [tuning_set[1]],
+                'relative_cost': [relative_cost],
+                'cost': [cost],
+                'trial': [trial],
+                'route': [route]
+             })
+            file_exists = os.path.isfile(os.path.join('data', output_file + ".csv"))
+            trial_df.to_csv(os.path.join('data', output_file + ".csv"), index=False, mode='a', header=not file_exists)
+    print("COMPLETED QUANTUM ROUTES")
+
+def post_process():
+    pass
 # Call with args, output will be in data folder
 # TODO This needs to be reworked, looks terrible
 # TODO attach argv's to variables rather than directly calling
+"""
 def wrapper():
     # Read our 3 inputs
     orders = get_payload(sys.argv[1])
@@ -113,7 +174,7 @@ def wrapper():
         best_route = []
         best_trial = -1
         #solver = create_solver(tuning_set, solver_parameters)
-        for trial in range(1, 4): # 1,2,3
+        for trial in range(1, 6): # 1,2,3
             relative_cost = 0
             cost = 0
             try:
@@ -147,7 +208,6 @@ def wrapper():
             # TODO Above 3 Lines in a function
             filename = str(tuning_set[0]) + "_" + str(tuning_set[1]) + "_" + str(trial) + "_" + str(relative_cost)
             create_graph(sys.argv[1], route, "sweep_routes", filename)
-            #TODO Checker for best route
 
         if total_succeeds == 0:
             total_succeeds = 1 # Avoid divide by 0
@@ -183,9 +243,22 @@ def wrapper():
     create_heatmap(best_df, "best")
     create_contour_plot(results_df, "avg")
     create_contour_plot(best_df, "best")
-    
+"""
+# TODO add params for index, columns, values, outputfile    
 def create_heatmap(results_df : pd.DataFrame, name : str) -> None:
     results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='relative_cost')
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = sns.heatmap(results_df, annot=True, cmap='coolwarm_r')
+    ax.invert_yaxis()
+    plt.title('Heatmap')
+    plt.xlabel('chain_strength')
+    plt.ylabel('cost_constraint_ratio')
+    plt.savefig(os.path.join('data', sys.argv[4] + '_heatmap_' + name), dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+def create_heatmap2(results_df : pd.DataFrame, name : str) -> None:
+    results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='failed_routes_count')
 
     fig = plt.figure(figsize=(8, 6))
     ax = sns.heatmap(results_df, annot=True, cmap='coolwarm_r')
@@ -252,8 +325,6 @@ def get_payload(file_path : str) -> list[tuple[Order, Order]]:
 
 # Read parameters
 def get_tuning_parameters(file_path : str) -> list:
-    # Plan
-    # Read file to get cost-constraint ratio and chain
     result = {}
     with open(os.path.join("data", file_path), 'r') as file:
         for line in file:
@@ -291,5 +362,26 @@ def write_parameters(orders, tuning_sets, solver_parameters):
         file.write(str(tuning_sets) + '\n')
         file.write(str(solver_parameters) + '\n')
 
+def read_csv():
+    df = pd.read_csv(os.path.join("data","sweep2_p1.csv"))
+    filtered_df = df[df['relative_cost'] != -1]
+    print(filtered_df)
+    aggregated_df = filtered_df.groupby(['cost_constraint_ratio', 'chain_strength']).agg({
+        'relative_cost': 'mean',
+        'cost': 'mean'
+    }).reset_index()
+    print(aggregated_df)
+    avg_df = aggregated_df.drop(['cost'], axis=1)
+    create_heatmap(avg_df, "temp")
 
-wrapper()
+    idx = filtered_df.groupby(['cost_constraint_ratio', 'chain_strength'])['relative_cost'].idxmin()
+    min_relative_cost_df = filtered_df.loc[idx].reset_index(drop=True)
+    create_heatmap(min_relative_cost_df, "temp2")
+
+    failed_routes_df = df[df['relative_cost'] == -1]
+    failed_routes_count = failed_routes_df.groupby(['cost_constraint_ratio', 'chain_strength']).size().reset_index(name='failed_routes_count')
+    print(failed_routes_count)
+    create_heatmap2(failed_routes_count, "temp3")
+
+#read_csv()
+main()
