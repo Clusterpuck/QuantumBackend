@@ -55,7 +55,7 @@ def create_graph(locations_file, route, folder_name, file_name):
 
     lats, longs, orders = reformat_locations(locations_path)
 
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
     plt.scatter(longs, lats, color='blue', marker='o')
     __add_lines(route, orders)
     plt.title('Equirectangular Projection Scatter Plot')
@@ -63,6 +63,7 @@ def create_graph(locations_file, route, folder_name, file_name):
     plt.ylabel('Latitude (km)')
     plt.grid(True)
     plt.savefig(os.path.join('data', folder_name, file_name + ".png"), dpi=300, bbox_inches='tight')
+    plt.close(fig)
 
 def reformat(locations_path, routes_path):
     """
