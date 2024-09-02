@@ -27,6 +27,7 @@ Cost metric will be distance relative to BFS
 """
 # python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params" "output"
 # TODO Fix this RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`). Consider using `matplotlib.pyplot.close()`.
+# TODO Graph best found route
 import itertools
 import os
 import sys
@@ -85,6 +86,7 @@ def orders_to_cartesian(
 
 # Call with args, output will be in data folder
 # TODO This needs to be reworked, looks terrible
+# TODO attach argv's to variables rather than directly calling
 def wrapper():
     # Read our 3 inputs
     orders = get_payload(sys.argv[1])
@@ -98,50 +100,58 @@ def wrapper():
     optimal_route, optimal_cost = brute_solver.solve(matrix)
     print(f"Optimal Route: {optimal_route} costs {optimal_cost}")
 
-    with open(os.path.join("data", sys.argv[4] + "_parameters.txt"), 'w') as file:
-        for order in orders:
-            file.write(str(order[0]) + '\n')
-        file.write(str(tuning_sets) + '\n')
-        file.write(str(solver_parameters) + '\n')
+    # Log the contents of the file inputs
+    write_parameters(orders, tuning_sets, solver_parameters)
     
     results = []
+    best_results = []
     # Uses tuning_params list to iterate over
     for tuning_set in tuning_sets:
         total_relative_cost = 0
         total_succeeds = 0
-        solver = create_solver(tuning_set, solver_parameters)
-        for trial in range(3):
+        best_cost = 0
+        best_route = []
+        best_trial = -1
+        #solver = create_solver(tuning_set, solver_parameters)
+        for trial in range(1, 4): # 1,2,3
             relative_cost = 0
             cost = 0
             try:
-                #route, cost = brute_solver.solve(matrix)
-                route, cost = solver.solve(matrix)
+                route, cost = brute_solver.solve(matrix)
+                #route, cost = solver.solve(matrix)
             except RuntimeError:
                 route = []
                 cost = optimal_cost - 1
-                total_succeeds += 1
+                relative_cost = cost - optimal_cost # NOTE Repeated line
             else:
                 total_succeeds += 1
+                # On first success OR better cost, update best
+                if total_succeeds == 1 or cost < best_cost:
+                    best_cost = cost
+                    best_trial = trial
+                    best_route = route
                 relative_cost = cost - optimal_cost
-                total_relative_cost += relative_cost    
+                total_relative_cost += relative_cost
+
             print(tuning_set[0], tuning_set[1], relative_cost, route)
-            trial_df = df = pd.DataFrame({
+            trial_df = pd.DataFrame({
                 'cost_constraint_ratio': [tuning_set[0]],
                 'chain_strength': [tuning_set[1]],
                 'relative_cost': [relative_cost],
                 'cost': [cost],
-                'trial': [trial+1], #TODO Make it so the trial loop is from 1 to 3 so I don't have to keep adding 1
+                'trial': [trial],
                 'route': [route]
              })
             file_exists = os.path.isfile(os.path.join('data', sys.argv[4] + ".csv"))
             trial_df.to_csv(os.path.join('data', sys.argv[4] + ".csv"), index=False, mode='a', header=not file_exists)
-            filename = str(tuning_set[0]) + "_" + str(tuning_set[1]) + "_" + str(trial+1) + "_" + str(relative_cost)
+            # TODO Above 3 Lines in a function
+            filename = str(tuning_set[0]) + "_" + str(tuning_set[1]) + "_" + str(trial) + "_" + str(relative_cost)
             create_graph(sys.argv[1], route, "sweep_routes", filename)
             #TODO Checker for best route
 
         if total_succeeds == 0:
-            total_succeeds = 1
-            avg_cost = -1
+            total_succeeds = 1 # Avoid divide by 0
+            avg_cost = best_cost = -1
         else:
             avg_cost = total_relative_cost/total_succeeds
         df = pd.DataFrame({
@@ -149,27 +159,42 @@ def wrapper():
             'chain_strength': [tuning_set[1]],
             'relative_cost': [avg_cost]
         })
+        best_df = pd.DataFrame({
+            'cost_constraint_ratio': [tuning_set[0]],
+            'chain_strength': [tuning_set[1]],
+            'relative_cost': [best_cost-optimal_cost],
+            'cost': [best_cost],
+            'trial': [best_trial],
+            'best_route': [best_route]
+        })
         results.append(df)
-        
+        best_results.append(best_df)
+
     results_df = pd.concat(results, ignore_index=True)
+    best_df = pd.concat(best_results, ignore_index=True)
+
     results_df.to_csv(os.path.join('data', sys.argv[4] + "avg.csv"), index=False)
-    create_heatmap(results_df)
-    # TODO create heatmap for best routes
-    create_contour_plot(results_df)
-    # TODO create contour_plot for best routes
+    best_df.to_csv(os.path.join('data', sys.argv[4] + "best.csv"), index=False)
+    best_df = best_df.drop(['cost', 'trial', 'best_route'], axis=1) # Graphing purposes
+
+    create_heatmap(results_df, "avg")
+    create_heatmap(best_df, "best")
+    create_contour_plot(results_df, "avg")
+    create_contour_plot(best_df, "best")
     
-def create_heatmap(results_df) -> None:
+def create_heatmap(results_df : pd.DataFrame, name : str) -> None:
     results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='relative_cost')
 
-    plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(8, 6))
     sns.heatmap(results_df, annot=True, cmap='coolwarm_r')
 
     plt.title('Heatmap')
     plt.xlabel('chain_strength')
     plt.ylabel('cost_constraint_ratio')
-    plt.savefig(os.path.join('data', sys.argv[4] + '_heatmap'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join('data', sys.argv[4] + '_heatmap_' + name), dpi=300, bbox_inches='tight')
+    plt.close(fig)
 
-def create_contour_plot(results_df):
+def create_contour_plot(results_df : pd.DataFrame, name : str) -> None:
     results_df = results_df.pivot(index='cost_constraint_ratio', columns='chain_strength', values='relative_cost')
 
     X = results_df.columns.values
@@ -177,13 +202,14 @@ def create_contour_plot(results_df):
     X, Y = np.meshgrid(X, Y) 
     Z = results_df.values
 
-    plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(8, 6))
     contour = plt.contourf(X, Y, Z, levels=10, cmap='coolwarm_r')
     plt.colorbar(contour)
     plt.title('Seaborn Contour Plot Example')
     plt.xlabel('chain_strength')
     plt.ylabel('cost_constraint_ratio')
-    plt.savefig(os.path.join('data', sys.argv[4] + '_contours'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join('data', sys.argv[4] + '_contours_' + name), dpi=300, bbox_inches='tight')
+    plt.close(fig)
 
 
 def create_solver(set, solver_params : dict) -> DWaveSolver:
@@ -255,5 +281,13 @@ def get_solver_parameters(file_path : str) -> dict:
                 parameters[key] = value
     # TODO Validate Params before return?
     return parameters
+
+def write_parameters(orders, tuning_sets, solver_parameters):
+    with open(os.path.join("data", sys.argv[4] + "_parameters.txt"), 'w') as file:
+        for order in orders:
+            file.write(str(order[0]) + '\n')
+        file.write(str(tuning_sets) + '\n')
+        file.write(str(solver_parameters) + '\n')
+
 
 wrapper()
