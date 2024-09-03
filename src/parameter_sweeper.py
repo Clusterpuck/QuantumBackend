@@ -18,21 +18,30 @@ from route_optimisation.route_solver.dwave_solver import DWaveSolver
 from route_optimisation.distance_matrix.cartesian_distance_finder import (
     CartesianDistanceFinder,
 )
-from distance_factory import DistanceFactory
 from pydantic_models import RouteInput, Order, OrderInput
-from solver_factory import SolverFactory
-from vehicle_clusterer_factory import VehicleClustererFactory
 from visualise_deliveries import create_graph
 
 # python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params" "output"
-# TODO Graph best found route
-
-vehicle_clusterer_factory = VehicleClustererFactory()
-distance_factory = DistanceFactory()
-solver_factory = SolverFactory()
 
 
 def main() -> None:
+    """
+    Main method for D-Wave solver to assist in analysing quantum performance
+    across different sets of parameters
+
+    Uses command line arguments
+
+    Parameters
+    ----------
+    orders_file: str
+        File name containing payload of orders,
+    tuning_file: str
+        File name for parameters to iterate over
+    solver_file: str
+        File name for solver parameters
+    output_file: str
+        File name for output files
+    """
     orders_file = sys.argv[1]
     tuning_file = sys.argv[2]
     solver_file = sys.argv[3]
@@ -85,8 +94,30 @@ def orders_to_cartesian(
     return cartesian_orders
 
 
-def process(orders, tuning_sets, solver_parameters, output_file):
+def process(
+    orders: list[tuple[Order, Order]],
+    tuning_sets: list[tuple[int, int]],
+    solver_parameters: dict,
+    output_file: str,
+) -> None:
+    """
+    Iterates over every set of tuning parameters and write key information
+    to file
 
+    Parameters
+    ----------
+    orders: list[tuple[Order, Order]
+        List of nodes where tuple contains the start and end of a route
+    tuning_sets: list[tuple[int, int]
+        Combinations of tuning parameters
+    solver_parameters: dict
+        Parameters of the solver that are to remain constant
+    output_file: str
+        File name for output files
+
+    """
+
+    # Find optimal route and cost
     matrix = CartesianDistanceFinder().build_matrix(orders)
     brute_solver = BruteForceSolver()
     optimal_route, optimal_cost = brute_solver.solve(matrix)
@@ -105,6 +136,7 @@ def process(orders, tuning_sets, solver_parameters, output_file):
                 route, cost = brute_solver.solve(matrix)
                 # Quantum
                 # route, cost = solver.solve(matrix)
+            # If D_Wave did not find a valid route
             except RuntimeError:
                 route = []
                 cost = -1
@@ -113,6 +145,7 @@ def process(orders, tuning_sets, solver_parameters, output_file):
                 relative_cost = cost - optimal_cost
 
             print(tuning_set[0], tuning_set[1], relative_cost, route)
+            # Add result to csv file
             trial_df = pd.DataFrame(
                 {
                     "cost_constraint_ratio": [tuning_set[0]],
@@ -135,10 +168,25 @@ def process(orders, tuning_sets, solver_parameters, output_file):
     print("COMPLETED QUANTUM ROUTES")
 
 
-def post_process(output_file, orders_file):
+def post_process(output_file: str, orders_file: str) -> None:
+    """
+    Processes quantum data. Creates heatmaps, contour plots and csv files for
+    average performance, best performance, failure occurences and create route
+    visualisers
+
+    Parameters
+    ----------
+    output_file: str
+        File name for output file
+    orders_file: str
+        File name containing orders payload
+
+    """
     df = pd.read_csv(os.path.join("data", output_file + ".csv"))
+    # Filter out invalid routes
     filtered_df = df[df["relative_cost"] != -1]
 
+    # Average performance
     average_df = (
         filtered_df.groupby(["cost_constraint_ratio", "chain_strength"])
         .agg({"relative_cost": "mean"})
@@ -146,51 +194,49 @@ def post_process(output_file, orders_file):
     )
     save_heatmap(
         average_df,
-        "avg",
         "cost_constraint_ratio",
         "chain_strength",
         "relative_cost",
-        output_file,
+        ("avg", output_file),
     )
     save_contour_plot(
         average_df,
-        "avg",
         "cost_constraint_ratio",
         "chain_strength",
         "relative_cost",
-        output_file,
+        ("avg", output_file),
     )
     average_df.to_csv(
         os.path.join("data", output_file + "avg.csv"), index=False
     )
 
+    # Best performance
     idx = filtered_df.groupby(["cost_constraint_ratio", "chain_strength"])[
         "relative_cost"
     ].idxmin()
     min_relative_cost_df = filtered_df.loc[idx].reset_index(drop=True)
     save_heatmap(
         min_relative_cost_df,
-        "best",
         "cost_constraint_ratio",
         "chain_strength",
         "relative_cost",
-        output_file,
+        ("best", output_file),
     )
     save_contour_plot(
         min_relative_cost_df,
-        "best",
         "cost_constraint_ratio",
         "chain_strength",
         "relative_cost",
-        output_file,
+        ("best", output_file),
     )
     min_relative_cost_df.to_csv(
         os.path.join("data", output_file + "best.csv"), index=False
     )
 
+    # Fail occurences
     failed_routes_df = df[df["relative_cost"] == -1]
     if not failed_routes_df.empty:
-        failed_routes_count = (
+        failed_routes_df = (
             failed_routes_df.groupby(
                 ["cost_constraint_ratio", "chain_strength"]
             )
@@ -198,15 +244,14 @@ def post_process(output_file, orders_file):
             .reset_index(name="failed_routes_count")
         )
         save_heatmap(
-            failed_routes_count,
-            "fails",
+            failed_routes_df,
             "cost_constraint_ratio",
             "chain_strength",
             "failed_routes_count",
-            output_file,
+            ("fails", output_file),
         )
 
-    # visualise deliveries
+    # Visualise deliveries
     for _, row in df.iterrows():
         cost_constraint_ratio = str(row["cost_constraint_ratio"])
         chain_strength = str(row["chain_strength"])
@@ -220,24 +265,38 @@ def post_process(output_file, orders_file):
 
 
 def save_heatmap(
-    results_df: pd.DataFrame,
-    name: str,
+    df: pd.DataFrame,
     index: str,
-    columns: str,
+    column: str,
     values: str,
-    outputfile: str,
+    file_parts: tuple[str,str],
 ) -> None:
-    print(results_df)
-    results_df = results_df.pivot(index=index, columns=columns, values=values)
+    """
+    Process a dataframe into a heatmap that is saved to file
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Contains dataframe to be plotted
+    index: str
+        dataframe column to represent index
+    column: str
+        dataframe column to represent column
+    values: str
+        dataframe column to represent values
+    file_parts: tuple[str,str]
+        prefix and suffix for '_heatmap_'
+    """
+    df = df.pivot(index=index, columns=column, values=values)
 
     fig = plt.figure(figsize=(8, 6))
-    ax = sns.heatmap(results_df, annot=True, cmap="coolwarm_r")
+    ax = sns.heatmap(df, annot=True, cmap="coolwarm_r")
     ax.invert_yaxis()
     plt.title("Heatmap")
     plt.xlabel("chain_strength")
     plt.ylabel("cost_constraint_ratio")
     plt.savefig(
-        os.path.join("data", outputfile + "_heatmap_" + name),
+        os.path.join("data", file_parts[0] + "_heatmap_" + file_parts[1]),
         dpi=300,
         bbox_inches="tight",
     )
@@ -245,41 +304,71 @@ def save_heatmap(
 
 
 def save_contour_plot(
-    results_df: pd.DataFrame,
-    name: str,
+    df: pd.DataFrame,
     index: str,
-    columns: str,
+    column: str,
     values: str,
-    outputfile: str,
+    file_parts: tuple[str,str],
 ):
-    results_df = results_df.pivot(index=index, columns=columns, values=values)
+    """
+    Process a dataframe into a contour plot that is saved to file
 
-    X = results_df.columns.values
-    Y = results_df.index.values
-    X, Y = np.meshgrid(X, Y)
-    Z = results_df.values
+    Parameters
+    ----------
+    df: pd.DataFrame
+        Contains dataframe to be plotted
+    index: str
+        dataframe column to represent index
+    column: str
+        dataframe column to represent column
+    values: str
+        dataframe column to represent values
+    file_parts: tuple[str,str]
+        prefix and suffix for '_heatmap_'
+    """
+    df = df.pivot(index=index, columns=column, values=values)
+
+    x = df.columns.values
+    y = df.index.values
+    x, y = np.meshgrid(x, y)
+    z = df.values
 
     fig = plt.figure(figsize=(8, 6))
-    contour = plt.contourf(X, Y, Z, levels=10, cmap="coolwarm_r")
+    contour = plt.contourf(x, y, z, levels=10, cmap="coolwarm_r")
     plt.colorbar(contour)
     plt.title("Contour Plot")
     plt.xlabel("chain_strength")
     plt.ylabel("cost_constraint_ratio")
     plt.savefig(
-        os.path.join("data", outputfile + "_contours_" + name),
+        os.path.join("data", file_parts[0] + "_contours_" + file_parts[1]),
         dpi=300,
         bbox_inches="tight",
     )
     plt.close(fig)
 
 
-def create_solver(set, solver_params: dict) -> DWaveSolver:
+def create_solver(tuning_set: tuple[int,int], solver_params: dict) -> DWaveSolver:
+    """
+    Creates a D-Wave solver
+
+    Parameters
+    ----------
+    tuning_set: tuple[int, int]
+        scale_factor and chain_strength
+    solver_params: dict
+        Other solver parameters
+
+    Returns
+    -------
+    DWaveSolver
+        A D-Wave solver based on provided parameters
+    """
     cost_factor = solver_params.get("cost_factor")
     num_runs = solver_params.get("num_runs")
     max_retries = solver_params.get("max_retries")
     is_circuit = solver_params.get("is_circuit")
-    scale_factor = set[0]
-    chain_value = set[1]
+    scale_factor = tuning_set[0]
+    chain_value = tuning_set[1]
     constraint_factor = cost_factor * scale_factor
     print("CREATING: ", scale_factor, chain_value)
     return DWaveSolver(
@@ -301,6 +390,27 @@ def create_solver(set, solver_params: dict) -> DWaveSolver:
 
 # Read payload
 def get_payload(file_path: str) -> list[tuple[Order, Order]]:
+    """
+    Extracts the orders from a RouteInput JSON
+
+    Parameters
+    ----------
+    file_path: str
+        file path of the JSON
+
+    Returns
+    -------
+    orders: list[tuple[Order, Order]]
+        list containing the start and end of each node.
+        In the context of parameter_sweeper, the start and end orders will
+        always be the same.
+
+    Raises
+    ------
+    ValueError:
+        If number of orders exceeds a hard-coded limit.
+        Precaution to protect quantum compute time.
+    """
     with open(os.path.join("data", file_path), "r", encoding="utf-8") as file:
         data = RouteInput(**json.load(file))
         orders = orders_to_cartesian(data.orders)
@@ -312,7 +422,21 @@ def get_payload(file_path: str) -> list[tuple[Order, Order]]:
 
 # Read parameters
 def get_tuning_parameters(file_path: str) -> list[tuple[int, int]]:
-    result = {}
+    """
+    Extracts the tuning parameters from file and returns every combination
+    of parameters.
+
+    Parameters
+    ----------
+    file_path: str
+        file path of the tuning parameters
+
+    Returns
+    -------
+    combinations: list[tuple[int, int]
+        list containing every combination of tuning parameters
+    """
+    combinations = {}
     with open(os.path.join("data", file_path), "r", encoding="utf-8") as file:
         for line in file:
             line = line.strip()
@@ -320,17 +444,30 @@ def get_tuning_parameters(file_path: str) -> list[tuple[int, int]]:
                 key, value = line.split(":", 1)
                 key = key.strip()
                 value = ast.literal_eval(value.strip())
-                result[key] = value
-    result = list(
+                combinations[key] = value
+    combinations = list(
         itertools.product(
-            result.get("cost_constraint_ratio"), result.get("chain_strength")
+            combinations.get("cost_constraint_ratio"), combinations.get("chain_strength")
         )
     )
-    return result
+    return combinations
 
 
 # Read D-Wave settings
 def get_solver_parameters(file_path: str) -> dict:
+    """
+    Extracts the solver parameters from file
+
+    Parameters
+    ----------
+    file_path: str
+        file path of the solver parameters
+
+    Returns
+    -------
+    parameters: dict
+        dict containing the solver parameter name and its value
+    """
     parameters = {}
     with open(os.path.join("data", file_path), "r", encoding="utf-8") as file:
         for line in file:
@@ -350,6 +487,21 @@ def write_parameters(
     tuning_sets: list[tuple[int, int]],
     solver_parameters: dict,
 ) -> None:
+    """
+    Writes the extracted data from input files for logging
+
+    Parameters
+    ----------
+    orders: list[tuple[Order, Order]]
+        list containing the start and end of each node.
+        In the context of parameter_sweeper, the start and end orders will
+        always be the same.
+    tuning_sets: list[tuple[int, int]]
+        list containing every combination of tuning parameters
+    solver_parameters: dict
+        dict containing the solver parameter name and its value
+
+    """
     with open(
         os.path.join("data", sys.argv[4] + "_parameters.txt"),
         "w",
