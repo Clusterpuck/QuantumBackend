@@ -85,7 +85,8 @@ class QueuedXMeans:
         k_max : int or float, default=np.inf
             Max number of clusters to make.
         k_init: int, default=2
-            Initial number of clusters.
+            Initial number of clusters. It is possible to make less clusters
+            than this, so actual minimum is 1 cluster.
         **k_means_args:
             Args compatible with k-means.
         """

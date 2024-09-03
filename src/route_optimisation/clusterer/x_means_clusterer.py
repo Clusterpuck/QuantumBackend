@@ -71,7 +71,6 @@ class XMeansClusterer(Clusterer):
             raise ValueError("Must provide clustering data.")
         elif len(orders) < self.__k_init:
             raise ValueError("X-means does not accept fewer data points than k_init.")
-        elif len(orders) < 
 
         # Attempt to cluster
         points = np.array([[o.x, o.y, o.z] for o in orders])
