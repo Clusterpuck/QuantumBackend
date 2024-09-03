@@ -41,24 +41,26 @@ class Cluster:
         self.size = self.data.shape[0]
         self.center = k_means.cluster_centers_[label]
 
-        # BIC-related info
-        self.df = self.data.shape[1] * (self.data.shape[1] + 3) / 2  # BIC's k
+        # TODO: Do scipy PCA to 2D here
+        # don't need to keep this implementation generic anymore?
+
+        # Attempt to cache BIC info if possible
+        self.df = self.data.shape[1] * (self.data.shape[1] + 3) / 2
         self.cov = np.cov(self.data.T)
-        self.log_likelihood = sum(
-            stats.multivariate_normal.logpdf(x, self.center, self.cov, allow_singular=True)
-            for x in self.data
-        )
-        self.bic = self.df * np.log(self.size) - 2 * self.log_likelihood
-        # Larger likelihood (smaller Ishioka BIC) is better
-
-        # NOTE: Probability density function is prone to failure when
-        # covariance matrix has low eigenvalues. This can occur due to:
-        # - Data appearing in lower-like dimensions (most of our use case)
-        # - Sporadic covariance from farless samples (data) vs vars (dims)
-
-        # Short of performing fancy dimensionality reduction from original
-        # cartesians, the best temporary solution is to allow singular.
-        # This may give suboptimal results as it resorts to backup tricks.
+        try:
+            self.log_likelihood = sum(
+                stats.multivariate_normal.logpdf(x, self.center, self.cov, allow_singular=True)
+                for x in self.data
+            )
+            self.bic = self.df * np.log(self.size) - 2 * self.log_likelihood
+            # Larger likelihood (smaller Ishioka BIC) is better
+            # Allow singular attempts to force run with near-zero eigenvalues
+        except ValueError:
+            # Partial FIX
+            # Probably either nans in cov (<2 samples) or <=0 eigenvalues
+            # Don't bother to calculate, we know we should reject or stop here
+            self.log_likelihood = None
+            self.bic = None
 
 
 class QueuedXMeans:
@@ -126,12 +128,17 @@ class QueuedXMeans:
         # Attempt to split into 2
         k_means = KMeans(2, **self.__k_means_args).fit(cluster.data)
 
-        # FIX: Prevent alpha divide by zero if clusters don't diverge
+        # FIX: Failed to diverge
         if len(np.unique(k_means.labels_)) == 1:
             self.__completed.append(cluster)
             return
 
         c1, c2 = self.__build_clusters(cluster.data, k_means, cluster.indices)
+
+        # If it seriously cannot compute BIC, treat it like a bad cluster
+        if c1.bic is None or c2.bic is None:
+            self.__completed.append(cluster)
+            return
 
         # Compute the combined BIC of the 2 new clusters
         # FIX: Prevent beta divide by zero with np.divide

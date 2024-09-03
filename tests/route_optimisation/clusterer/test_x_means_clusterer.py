@@ -18,6 +18,8 @@ def dummy_orders() -> list[Order]:
     # With k=2, [0, 0, 1, 1, 0, 1, 1, 1]
     # With k=3, [0, 0, 1, 1, 0, 1, 1, 2]
 
+    # TODO: change data to 3D gaussian, then add another set with near flats
+
     #  Flip dict[list] to list[dict], then convert to list[Order]
     orders = [Order(**dict(zip(order_data, t))) for t in zip(*order_data.values())]
 
@@ -29,8 +31,9 @@ def test_cluster(dummy_orders: list[Order]) -> None:
     # Check k_max=2, k_init=2
     clusterer = XMeansClusterer(2, k_init=2)
     np.testing.assert_array_equal(
-        clusterer.cluster(dummy_orders), np.array([0, 0, 1, 1, 0, 1, 1, 1])
+        clusterer.cluster(dummy_orders), np.array([1, 1, 0, 0, 1, 0, 0, 0])
     )
+    # Exact opposite of k-means, so it seems to work
 
     # Check k_max=3, k_init=3
     clusterer = XMeansClusterer(3, k_init=3)
