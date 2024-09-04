@@ -27,7 +27,8 @@ import heapq  # Min queue only, so always invert key for "worst BIC"
 
 class Cluster:
     """
-    Represents a k-means cluster with BIC-related info.
+    Represents a k-means cluster with BIC-related info. Assumes 3D data, with
+    BIC data projected to 2D.
     """
 
     # indices are all indices of the cluster data, relative to X's shape
@@ -41,12 +42,23 @@ class Cluster:
         self.size = self.data.shape[0]
         self.center = k_means.cluster_centers_[label]
 
-        # TODO: Do scipy PCA to 2D here
-        # don't need to keep this implementation generic anymore?
+        # Don't perform a full PCA. Just use the Earth-relative centroid as
+        # the normal to project to, assuming half-decent initial clusters.
+
+        # Project the point to the normal to get plane-relative "height"
+        # Then subtract this height vector to complete plane projection
+        # Since the norm (centre) is constant, pre-compute multiplier vector
+        norm_scaling = self.center / np.sum(np.square(self.center))
+        flattened_data = np.apply_along_axis(
+            lambda point: point - (np.dot(point, self.center) * norm_scaling),
+            axis=1,
+            arr=self.data,
+        )
+        # Assuming data isn't way too curved, proj should be representative
 
         # Attempt to cache BIC info if possible
-        self.df = self.data.shape[1] * (self.data.shape[1] + 3) / 2
-        self.cov = np.cov(self.data.T)
+        self.df = flattened_data.shape[1] * (flattened_data.shape[1] + 3) / 2
+        self.cov = np.cov(flattened_data.T)
         try:
             self.log_likelihood = sum(
                 stats.multivariate_normal.logpdf(x, self.center, self.cov, allow_singular=True)
@@ -81,6 +93,12 @@ class QueuedXMeans:
         the optimal model, possibly with pruning or backtracked merging, this
         approach will instead attempt to split only greedily by selecting the
         worst performing cluster. With BIC, higher is worse.
+
+        Changes:
+        - Uses greedy queue rather than exhaustive DFS or original's BFS. This is easy to implement and enforces k_max correctly
+        - No longer generic x-means. Assumes a (0,0,0) Earth centre and flattens subclusters before analysing with 2D Gaussian BIC
+
+        # TODO: Rename GeoXMeans if we continue with this version
 
         Parameters
         ----------
@@ -120,27 +138,25 @@ class QueuedXMeans:
 
         If successful, push new clusters to queue. Else push old to completed.
         """
-        # Don't let subclusters get too small
-        if cluster.size <= 3:
+        # Guard: Overly small or unshapely initial clusters must be done
+        if cluster.size <= 3 or cluster.bic is None:
             self.__completed.append(cluster)
             return
 
         # Attempt to split into 2
         k_means = KMeans(2, **self.__k_means_args).fit(cluster.data)
-
-        # FIX: Failed to diverge
         if len(np.unique(k_means.labels_)) == 1:
+            # Cancel split due to non-diverging clusters
             self.__completed.append(cluster)
             return
 
         c1, c2 = self.__build_clusters(cluster.data, k_means, cluster.indices)
-
-        # If it seriously cannot compute BIC, treat it like a bad cluster
         if c1.bic is None or c2.bic is None:
+            # Cancel split due to unshapely subclusters
             self.__completed.append(cluster)
             return
 
-        # Compute the combined BIC of the 2 new clusters
+        # Compute the 2-cluster model's BIC from their cached info
         # FIX: Prevent beta divide by zero with np.divide
         # Alpha handles the inf correctly, albeit with console warning
         beta = np.divide(
@@ -159,6 +175,7 @@ class QueuedXMeans:
             self.__tie_breaker += 2
             self.__k_curr += 1
         else:
+            # Cancel split due to worse fitting
             self.__completed.append(cluster)
 
     def fit(self, X: np.ndarray):
