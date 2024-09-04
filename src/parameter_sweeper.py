@@ -19,7 +19,7 @@ from route_optimisation.distance_matrix.cartesian_distance_finder import (
     CartesianDistanceFinder,
 )
 from pydantic_models import RouteInput, Order, OrderInput
-from visualise_deliveries import create_graph
+from route_visualiser.visualise_deliveries import create_graph
 
 # python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params" "output"
 
@@ -309,7 +309,7 @@ def save_contour_plot(
     column: str,
     values: str,
     file_parts: tuple[str,str],
-):
+) -> None:
     """
     Process a dataframe into a contour plot that is saved to file
 
@@ -511,6 +511,5 @@ def write_parameters(
             file.write(str(order[0]) + "\n")
         file.write(str(tuning_sets) + "\n")
         file.write(str(solver_parameters) + "\n")
-
 
 main()

@@ -16,11 +16,11 @@ import json
 import sys
 import os
 import matplotlib.pyplot as plt
-import er_projection.er_projection as erp
+import route_visualiser.er_projection as erp
 
 from pydantic_models import RouteInput
 
-def plot_graph():
+def plot_graph() -> None:
     """
     Visualise locations and routes
 
@@ -49,7 +49,22 @@ def plot_graph():
     plt.show()
     
 
-def create_graph(locations_file, route, folder_name, file_name):
+def create_graph(locations_file, route, folder_name, file_name) -> None:
+    """
+    Creates a graph and saves to a folder
+
+    Parameters
+    ----------
+    locations_path : str
+        The name of the locations file at src/data
+        The file should be in the format of RouteInput
+    route : list[int]
+        Route of index ids
+    folder_name : str
+        Name of the folder to be saved to
+    file_name : str
+        Name of the file to be saved
+    """
     locations_path = os.path.join("data", locations_file)
     route = [route]
 
@@ -110,19 +125,14 @@ def reformat(locations_path, routes_path):
     return lats, longs, orders, routes
 
 def reformat_locations(locations_path):
-    # TODO UPDATE THIS DOCSTRING
     """
-    Extracts the latitudes, longitudes, locations and routes
-    from the JSON files
+    Extracts the latitudes, longitudes and orders from JSON Object
 
     Parameters
     ----------
     locations_path : str
         The name of the locations file at src/data
         The file should be in the format of RouteInput
-    routes_path : routes
-        the name of the routes file at src/data
-        The file should be a list of lists containing ordered Order_ids
 
     Returns
     -------
@@ -136,10 +146,6 @@ def reformat_locations(locations_path):
             lat: float
             lon: float
         Example: {16: {'lat': -31.899364, 'lon': 115.801288}
-    routes : list[list[int]]
-        Contains a list of lists of routes in sorted order
-        Outer lists contains the list of routes
-        Inner list contains the orders in sorted order
     """
     with open(locations_path, 'r', encoding='utf-8') as file:
         locations = json.load(file)
