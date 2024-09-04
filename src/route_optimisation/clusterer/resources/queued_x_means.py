@@ -32,36 +32,53 @@ class Cluster:
     """
 
     # indices are all indices of the cluster data, relative to X's shape
-    def __init__(self, X: np.ndarray, indices: np.ndarray, k_means: KMeans, label: int):
+    def __init__(self, data: np.ndarray, indices: np.ndarray, center: KMeans):
         # NOTE: Do not mutate. Treat this as an immutable struct.
         # TODO: Enforce with properties
 
         # Cluster info
-        self.data = X[k_means.labels_ == label]
-        self.indices = indices[k_means.labels_ == label]
-        self.size = self.data.shape[0]
-        self.center = k_means.cluster_centers_[label]
+        self.data = data  # 2D array, holding points of xyz
+        self.indices = indices  # 1D array, holding original indices of the data
+        self.size = data.shape[0]
+        self.center = center
 
-        # Don't perform a full PCA. Just use the Earth-relative centroid as
-        # the normal to project to, assuming half-decent initial clusters.
+        # Reduce subcluster to 2D before BIC
+        # Aka, transform world space (x, y, z) to view space (u, v)
+        # https://math.stackexchange.com/questions/4533920/how-to-draw-vector-steepest-direction-on-plane
+        # https://stackoverflow.com/questions/23472048/projecting-3d-points-to-2d-plane
 
-        # Project the point to the normal to get plane-relative "height"
-        # Then subtract this height vector to complete plane projection
-        # Since the norm (centre) is constant, pre-compute multiplier vector
-        norm_scaling = self.center / np.sum(np.square(self.center))
+        # Get new plane first, keeping xy orientation (relative to "up")
+        normal = self.center
+        if normal[0] == 0 and normal[2] == 0:
+            # If plane is vertically flat, default new y to the z-axis
+            screen_x = np.array([1, 0, 0])
+            screen_y = np.array([0, 0, 1])
+        else:
+            # Else, the new y is the steepest +ve direction on the plane
+            # Double cross does the trick: (norm X up) X norm
+            screen_x = np.cross(normal, [0, 1, 0])
+            screen_y = np.cross(screen_x, normal)
+            # Since y is always +ve, x direction is consistent
+
+            # Normalise before projection step
+            screen_x = screen_x / np.linalg.norm(screen_x)
+            screen_y = screen_y / np.linalg.norm(screen_y)
+
+        # Then project to the new bases, via simple dot products on each axis
         flattened_data = np.apply_along_axis(
-            lambda point: point - (np.dot(point, self.center) * norm_scaling),
+            lambda point: np.array([np.dot(point, screen_x), np.dot(point, screen_y)]),
             axis=1,
             arr=self.data,
         )
-        # Assuming data isn't way too curved, proj should be representative
 
-        # Attempt to cache BIC info if possible
+        # Finally, compute and cache BIC info if possible
         self.df = flattened_data.shape[1] * (flattened_data.shape[1] + 3) / 2
         self.cov = np.cov(flattened_data.T)
         try:
             self.log_likelihood = sum(
-                stats.multivariate_normal.logpdf(x, self.center, self.cov, allow_singular=True)
+                stats.multivariate_normal.logpdf(
+                    x, self.center, self.cov, allow_singular=True
+                )
                 for x in self.data
             )
             self.bic = self.df * np.log(self.size) - 2 * self.log_likelihood
@@ -79,9 +96,6 @@ class QueuedXMeans:
     """
     Class that performs x-means clustering.
     """
-
-    # NOTE: Since the static nested class builder is hard to typehint, just
-    # document the public methods for now
 
     def __init__(self, k_max=np.inf, k_init=2, **k_means_args):
         """
@@ -121,16 +135,21 @@ class QueuedXMeans:
         self.__tie_breaker = 0  # Keeps cluster queue deterministic
 
     def __build_clusters(
-        self, X: np.ndarray, k_means: KMeans, index: np.ndarray | None = None
+        self, X: np.ndarray, indices: np.ndarray, k_means: KMeans
     ) -> list[Cluster]:
         """
-        From a fitted k-means, init a tuple of Cluster instances.
+        From a fitted k-means, init all Cluster instances.
         """
-        if index is None:
-            index = np.array(range(0, X.shape[0]))
-        labels = range(0, k_means.get_params()["n_clusters"])
+        # Changed to improve Cluster testability
+        new_clusters = []
+        for label in range(0, k_means.get_params()["n_clusters"]):
+            # Load each cluster with the subset data points and centroid
+            data = X[k_means.labels_ == label]
+            indices = indices[k_means.labels_ == label]
+            center = k_means.cluster_centers_[label]
+            new_clusters.append(Cluster(data, indices, center))
 
-        return [Cluster(X, index, k_means, label) for label in labels]
+        return new_clusters
 
     def __attempt_split(self, cluster: Cluster) -> None:
         """
@@ -150,7 +169,7 @@ class QueuedXMeans:
             self.__completed.append(cluster)
             return
 
-        c1, c2 = self.__build_clusters(cluster.data, k_means, cluster.indices)
+        c1, c2 = self.__build_clusters(cluster.data, cluster.indices, k_means)
         if c1.bic is None or c2.bic is None:
             # Cancel split due to unshapely subclusters
             self.__completed.append(cluster)
@@ -195,8 +214,9 @@ class QueuedXMeans:
         self.__completed = []
 
         # Initial clustering, producing k_init clusters
+        indices = np.array(range(0, X.shape[0]))  # Label each point with original order
         initial_clusters = self.__build_clusters(
-            X, KMeans(self.__k_init, **self.__k_means_args).fit(X)
+            X, indices, KMeans(self.__k_init, **self.__k_means_args).fit(X)
         )
         self.__k_curr = len(initial_clusters)
 
