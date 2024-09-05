@@ -27,18 +27,42 @@ import heapq  # Min queue only, so always invert key for "worst BIC"
 
 class GeoCluster:
     """
-    Represents a k-means cluster with BIC-related info. Assumes 3D data, with
-    BIC data projected to 2D.
+    Represents a k-means cluster with cached BIC info. Used internally for
+    x-means. Assumes 3D data, but with BIC data projected to 2D relative to
+    the Earth surface normal.
+
+    NOTE: Do not mutate. Treat this as an immutable struct. Might mark as
+    dataclass later.
+
+    Parameters
+    ----------
+    data : ndarray
+        A 2D array of this cluster's xyz points, shaped (n_samples, 3).
+    indices : ndarray
+        A 1D array of each data point's global index in the original dataset.
+    size: int
+        Number of data points.
+    center : ndarray
+        A 1D array holding the xyz of the k-means centroid.
+    df : int | float
+        Cached double of free parameters (the 2p used in Ishioka's paper).
+        This strongly counteracts BIC's variance minimisation to prevent
+        overfitting. Ishioka defines p as the dimensions of the points,
+        while this code's designer chose `dims * (dims + 3) / 2`. We hardcode
+        `4` for our flattened 2D data, then rely on k_max as the main cap.
+    cov : ndarray
+        2x2 covariance matrix of the flattened data.
+    log_likelihood : float
+        A non-positive probability indicating goodness of 2D Gaussian fit.
+    bic : float
+        The BIC score describing overall cluster goodness. Lower is better.
     """
 
     # indices are all indices of the cluster data, relative to X's shape
     def __init__(self, data: np.ndarray, indices: np.ndarray, center: KMeans):
-        # NOTE: Do not mutate. Treat this as an immutable struct.
-        # TODO: Enforce with properties
-
         # Cluster info
-        self.data = data  # 2D array, holding points of xyz
-        self.indices = indices  # 1D array, holding original indices of the data
+        self.data = data
+        self.indices = indices
         self.size = data.shape[0]
         self.center = center
 
@@ -77,7 +101,7 @@ class GeoCluster:
         # Assume it's fine for the normal to lose its relative height to data
 
         # Finally, compute and cache BIC info if possible
-        self.df = flattened_data.shape[1] * (flattened_data.shape[1] + 3) / 2
+        self.df = 4  # Not sure why it's named df, but this is 2*params
         self.cov = np.cov(flattened_data.T)
         try:
             self.log_likelihood = sum(
@@ -94,9 +118,6 @@ class GeoCluster:
 
             # NOTE: LinAlgError occurs for non-0, non-invertible covs
             # Some reasons include too few data points or low cov eigens
-
-        # TODO: df = 2p, but then why is p this quadratic dims term? Shouldn't p = dims? Confirm reasoning and performance, then correct if needed...
-        # Actually, we can maybe hardcode it to 4 for this geo ver, assuming p=dims?
 
 
 class GeoXMeans:
@@ -116,8 +137,10 @@ class GeoXMeans:
         worst performing cluster. With BIC, higher is worse.
 
         Changes:
-        - Uses greedy queue rather than exhaustive DFS or original's BFS. This is easy to implement and enforces k_max correctly
-        - No longer generic x-means. Assumes a (0,0,0) Earth centre and flattens subclusters before analysing with 2D Gaussian BIC
+        - Uses greedy queue rather than exhaustive DFS or original's BFS. This
+        is easy to implement and enforces k_max correctly
+        - No longer generic x-means. Assumes a (0,0,0) Earth centre and
+        flattens clusters before computing a 2D Gaussian BIC.
 
         Parameters
         ----------
@@ -135,8 +158,8 @@ class GeoXMeans:
 
         # Runtime vars (can be converted to pure functions later)
         self.__k_curr = 0
-        self.__pending = []
-        self.__completed = []
+        self.__pending = []  # Queues as (-BIC, tie_breaker, GeoCluster)
+        self.__completed = []  # Stores completed as GeoCluster
         self.__tie_breaker = 0  # Keeps cluster queue deterministic
 
     def __build_clusters(
@@ -149,10 +172,10 @@ class GeoXMeans:
         new_clusters = []
         for label in range(0, k_means.get_params()["n_clusters"]):
             # Load each cluster with the subset data points and centroid
-            data = X[k_means.labels_ == label]
-            indices = indices[k_means.labels_ == label]
-            center = k_means.cluster_centers_[label]
-            new_clusters.append(GeoCluster(data, indices, center))
+            sub_data = X[k_means.labels_ == label]
+            sub_indices = indices[k_means.labels_ == label]
+            sub_center = k_means.cluster_centers_[label]
+            new_clusters.append(GeoCluster(sub_data, sub_indices, sub_center))
 
         return new_clusters
 
@@ -216,8 +239,6 @@ class GeoXMeans:
         self : XMeans
             Fitted estimator.
         """
-        self.__completed = []
-
         # Initial clustering, producing k_init clusters
         indices = np.array(range(0, X.shape[0]))  # Label each point with original order
         initial_clusters = self.__build_clusters(
@@ -226,14 +247,21 @@ class GeoXMeans:
         self.__k_curr = len(initial_clusters)
 
         # Set up queuing stuff, making sure to invert for max-BIC
-        self.__pending = [(-c.bic, i, c) for i, c in enumerate(initial_clusters)]
-        heapq.heapify(self.__pending)
+        self.__pending = []
         self.__completed = []
-        self.__tie_breaker = len(self.__pending)
+        self.__tie_breaker = 0
+        for c in initial_clusters:
+            # FIX: Failed initial clusters should be immediately marked done
+            if c.bic is None:
+                self.__completed.append(c)
+            else:
+                self.__pending.append(tuple([-c.bic, self.__tie_breaker, c]))
+                self.__tie_breaker += 1
+        heapq.heapify(self.__pending)
 
         # 2-means cluster on the worst cluster until BIC stops improving
         while self.__k_curr < self.__k_max and len(self.__pending) != 0:
-            self.__attempt_split(heapq.heappop(self.__pending))
+            self.__attempt_split(heapq.heappop(self.__pending)[2])
 
         # Generate sklearn-style properties
         self.labels_ = np.empty(X.shape[0], dtype=np.intp)
