@@ -2,7 +2,7 @@ import numpy as np
 
 from pydantic_models import Order
 from route_optimisation.clusterer.clusterer import Clusterer
-from route_optimisation.clusterer.resources.queued_x_means import QueuedXMeans
+from route_optimisation.clusterer.resources.geo_x_means import GeoXMeans
 
 
 # Pyclustering is deprecated and Clustpy currently requires downgrading to numpy ~1.2
@@ -74,15 +74,13 @@ class XMeansClusterer(Clusterer):
 
         # Attempt to cluster
         points = np.array([[o.x, o.y, o.z] for o in orders])
-        x_means = QueuedXMeans(
+        x_means = GeoXMeans(
             k_init=self.__k_init,
             k_max=self.__k_max,
             init="k-means++",
             random_state=0,
             n_init=10,
         ).fit(points)
-        # Not quite ideal as is. Would recommend fixing up x-means subclusters
-        # with PCA... if we can confirm that the scoring remains compatible.
 
         # Check enough clusters were found
         labels = x_means.labels_

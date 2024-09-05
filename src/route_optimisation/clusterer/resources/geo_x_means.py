@@ -25,7 +25,7 @@ from sklearn.cluster import KMeans
 import heapq  # Min queue only, so always invert key for "worst BIC"
 
 
-class Cluster:
+class GeoCluster:
     """
     Represents a k-means cluster with BIC-related info. Assumes 3D data, with
     BIC data projected to 2D.
@@ -99,7 +99,7 @@ class Cluster:
         # Actually, we can maybe hardcode it to 4 for this geo ver, assuming p=dims?
 
 
-class QueuedXMeans:
+class GeoXMeans:
     """
     Class that performs x-means clustering.
     """
@@ -118,8 +118,6 @@ class QueuedXMeans:
         Changes:
         - Uses greedy queue rather than exhaustive DFS or original's BFS. This is easy to implement and enforces k_max correctly
         - No longer generic x-means. Assumes a (0,0,0) Earth centre and flattens subclusters before analysing with 2D Gaussian BIC
-
-        # TODO: Rename GeoXMeans if we continue with this version
 
         Parameters
         ----------
@@ -143,7 +141,7 @@ class QueuedXMeans:
 
     def __build_clusters(
         self, X: np.ndarray, indices: np.ndarray, k_means: KMeans
-    ) -> list[Cluster]:
+    ) -> list[GeoCluster]:
         """
         From a fitted k-means, init all Cluster instances.
         """
@@ -154,11 +152,11 @@ class QueuedXMeans:
             data = X[k_means.labels_ == label]
             indices = indices[k_means.labels_ == label]
             center = k_means.cluster_centers_[label]
-            new_clusters.append(Cluster(data, indices, center))
+            new_clusters.append(GeoCluster(data, indices, center))
 
         return new_clusters
 
-    def __attempt_split(self, cluster: Cluster) -> None:
+    def __attempt_split(self, cluster: GeoCluster) -> None:
         """
         Attempts to perform 2-means clustering to split.
 

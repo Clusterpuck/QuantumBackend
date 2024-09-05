@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from route_optimisation.clusterer.resources.queued_x_means import QueuedXMeans, Cluster
+from route_optimisation.clusterer.resources.geo_x_means import GeoXMeans, GeoCluster
 
 
 # This should attempt more thorough x-means logic tests than for its clusterer
@@ -11,7 +11,7 @@ ABS_TOL = 0.001
 
 
 @pytest.fixture
-def dummy_cluster() -> Cluster:
+def dummy_cluster() -> GeoCluster:
     # Basic test of projection and half-decent distribution
     data = np.array(
         [
@@ -32,11 +32,11 @@ def dummy_cluster() -> Cluster:
     # Log-likelihood = -73.246
     # BIC = 154.538
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 @pytest.fixture
-def dummy_distant_normal_cluster() -> Cluster:
+def dummy_distant_normal_cluster() -> GeoCluster:
     # Tests that distant normal of same direction gives the same as regular
     data = np.array(
         [
@@ -57,11 +57,11 @@ def dummy_distant_normal_cluster() -> Cluster:
     # Log-likelihood = -73.246
     # BIC = 154.538
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 @pytest.fixture
-def dummy_vertical_cluster() -> Cluster:
+def dummy_vertical_cluster() -> GeoCluster:
     # Edge case vertical normal should still succeed
     data = np.array(
         [
@@ -83,11 +83,11 @@ def dummy_vertical_cluster() -> Cluster:
     # Log-likelihood = -73.246
     # BIC = 154.538
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 @pytest.fixture
-def dummy_thin_cluster() -> Cluster:
+def dummy_thin_cluster() -> GeoCluster:
     # Overly thin data should just fail
     data = np.array(
         [
@@ -108,11 +108,11 @@ def dummy_thin_cluster() -> Cluster:
     # Log-likelihood = None
     # BIC = None
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 @pytest.fixture
-def dummy_1d_cluster() -> Cluster:
+def dummy_1d_cluster() -> GeoCluster:
     # Normal ends up squashing data into a line along x-axis, where y=0, z=1
     data = np.array(
         [
@@ -130,11 +130,11 @@ def dummy_1d_cluster() -> Cluster:
 
     # df and cov should succeed, but likelihood and bic should fail
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 @pytest.fixture
-def dummy_0d_cluster() -> Cluster:
+def dummy_0d_cluster() -> GeoCluster:
     # Normal ends up squashing data into single point
     data = np.array(
         [
@@ -152,11 +152,11 @@ def dummy_0d_cluster() -> Cluster:
 
     # df and cov should succeed, but likelihood and bic should fail
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 @pytest.fixture
-def dummy_non_invertible_cluster() -> Cluster:
+def dummy_non_invertible_cluster() -> GeoCluster:
     # Singular covariance from degenerate data is treated like regular fails
     data = np.array(
         [
@@ -174,11 +174,11 @@ def dummy_non_invertible_cluster() -> Cluster:
     # Log-likelihood = None
     # BIC = None
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 @pytest.fixture
-def dummy_nan_cluster() -> Cluster:
+def dummy_nan_cluster() -> GeoCluster:
     # NaN covariance can occur with insufficient data
     data = np.array(
         [
@@ -196,16 +196,16 @@ def dummy_nan_cluster() -> Cluster:
     # Log-likelihood = None
     # BIC = None
 
-    return Cluster(data, indices, center)
+    return GeoCluster(data, indices, center)
 
 
 def test_cluster(
-    dummy_cluster: Cluster,
-    dummy_distant_normal_cluster: Cluster,
-    dummy_vertical_cluster: Cluster,
-    dummy_thin_cluster: Cluster,
-    dummy_1d_cluster: Cluster,
-    dummy_0d_cluster: Cluster,
+    dummy_cluster: GeoCluster,
+    dummy_distant_normal_cluster: GeoCluster,
+    dummy_vertical_cluster: GeoCluster,
+    dummy_thin_cluster: GeoCluster,
+    dummy_1d_cluster: GeoCluster,
+    dummy_0d_cluster: GeoCluster,
 ) -> None:
     # Check indicies passed through
     np.testing.assert_equal(dummy_cluster.indices, np.array([0, 1, 2, 3, 4]))
