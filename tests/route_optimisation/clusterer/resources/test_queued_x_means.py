@@ -128,7 +128,10 @@ def dummy_1d_cluster() -> GeoCluster:
     # New x basis = [1.0, 0.0, 0.0]
     # New y basis = [0.0, 1.0, 0.0]
 
-    # df and cov should succeed, but likelihood and bic should fail
+    # Free params = 2d * (2d + 3) / 2 = 5.0
+    # Covariance = [[9.5, 0.0], [0.0, 0.0]]
+    # Log-likelihood = None
+    # BIC = None
 
     return GeoCluster(data, indices, center)
 
@@ -138,7 +141,7 @@ def dummy_0d_cluster() -> GeoCluster:
     # Normal ends up squashing data into single point
     data = np.array(
         [
-            [20, 0, 1],  # Remains [20.0, 0.0]
+            [20, 0, 1],  # To [20.0, 0.0]
             [20, 0, 4],  # Ditto
             [20, 0, 2],  # Ditto
             [20, 0, -98],  # Ditto
@@ -150,7 +153,10 @@ def dummy_0d_cluster() -> GeoCluster:
     # New x basis = [1.0, 0.0, 0.0]
     # New y basis = [0.0, 1.0, 0.0]
 
-    # df and cov should succeed, but likelihood and bic should fail
+    # Free params = 2d * (2d + 3) / 2 = 5.0
+    # Covariance = [[0.0, 0.0], [0.0, 0.0]]
+    # Log-likelihood = None
+    # BIC = None
 
     return GeoCluster(data, indices, center)
 
@@ -183,7 +189,6 @@ def dummy_nan_cluster() -> GeoCluster:
     data = np.array(
         [
             [1, 1, 0],  # To [1.0, 1.0]
-            [-1, -1, 0],  # To [-1.0, -1.0]
         ]
     )
     indices = np.array(range(2))
@@ -192,7 +197,7 @@ def dummy_nan_cluster() -> GeoCluster:
     # New y basis = [0.0, 1.0, 0.0]
 
     # Free params = 2d * (2d + 3) / 2 = 5.0
-    # Covariance = [[2.0, 2.0], [2.0, 2.0]]
+    # Covariance = [[nan, nan], [nan, nan]]
     # Log-likelihood = None
     # BIC = None
 
@@ -203,12 +208,9 @@ def test_cluster(
     dummy_cluster: GeoCluster,
     dummy_distant_normal_cluster: GeoCluster,
     dummy_vertical_cluster: GeoCluster,
-    dummy_thin_cluster: GeoCluster,
-    dummy_1d_cluster: GeoCluster,
-    dummy_0d_cluster: GeoCluster,
 ) -> None:
     # Check indicies passed through
-    np.testing.assert_equal(dummy_cluster.indices, np.array([0, 1, 2, 3, 4]))
+    np.testing.assert_array_equal(dummy_cluster.indices, np.array([0, 1, 2, 3, 4]))
 
     # Check that a regular cluster works fine
     assert dummy_cluster.df == pytest.approx(5.0, abs=ABS_TOL)
@@ -220,7 +222,9 @@ def test_cluster(
 
     # Check that a longer plane normal changes nothing
     # Notice that the centroid loses its "height", so the BIC is unchanged
-    assert dummy_distant_normal_cluster.df == pytest.approx(dummy_cluster.df, abs=ABS_TOL)
+    assert dummy_distant_normal_cluster.df == pytest.approx(
+        dummy_cluster.df, abs=ABS_TOL
+    )
     np.testing.assert_allclose(
         dummy_distant_normal_cluster.cov, dummy_cluster.cov, atol=ABS_TOL
     )
@@ -239,6 +243,16 @@ def test_cluster(
     assert dummy_vertical_cluster.log_likelihood == pytest.approx(-73.246, abs=ABS_TOL)
     assert dummy_vertical_cluster.bic == pytest.approx(154.538, abs=ABS_TOL)
 
+
+def test_bad_clusters(
+    dummy_thin_cluster: GeoCluster,
+    dummy_1d_cluster: GeoCluster,
+    dummy_0d_cluster: GeoCluster,
+    dummy_non_invertible_cluster: GeoCluster,
+    dummy_nan_cluster: GeoCluster,
+) -> None:
+    # This should succeed, but their log-likelihood and BIC will fail
+
     # Check cluster with thin-ish distribution (a very low cov eigenvalue)
     assert dummy_thin_cluster.df == pytest.approx(5.0, abs=ABS_TOL)
     np.testing.assert_allclose(
@@ -248,14 +262,6 @@ def test_cluster(
     assert dummy_thin_cluster.bic is None
 
     # Check cluster with 1 dimension of distribution
-    assert dummy_vertical_cluster.df == pytest.approx(5.0, abs=ABS_TOL)
-    np.testing.assert_allclose(
-        dummy_vertical_cluster.cov, np.array([[9.5, -1.5], [-1.5, 0.3]]), atol=ABS_TOL
-    )
-    assert dummy_vertical_cluster.log_likelihood == pytest.approx(-73.246, abs=ABS_TOL)
-    assert dummy_vertical_cluster.bic == pytest.approx(154.538, abs=ABS_TOL)
-
-    # Check cluster with thin-ish distribution (a very low cov eigenvalue)
     assert dummy_1d_cluster.df == pytest.approx(5.0, abs=ABS_TOL)
     np.testing.assert_allclose(
         dummy_1d_cluster.cov, np.array([[9.5, 0.0], [0.0, 0.0]]), atol=ABS_TOL
@@ -266,13 +272,31 @@ def test_cluster(
     # Check cluster with 0 dimensions of distribution (stacked points)
     assert dummy_0d_cluster.df == pytest.approx(5.0, abs=ABS_TOL)
     np.testing.assert_allclose(
-        dummy_0d_cluster.cov, np.array([[9.5, 0.0], [0.0, 0.0]]), atol=ABS_TOL
+        dummy_0d_cluster.cov, np.array([[0.0, 0.0], [0.0, 0.0]]), atol=ABS_TOL
     )
     assert dummy_0d_cluster.log_likelihood is None
     assert dummy_0d_cluster.bic is None
 
-    # Test the 1d and 0d known bic failures
-    # Test the single data point known bic failure
+    # Check that it survives a LinAlgError, using a known triggering cluster
+    assert dummy_non_invertible_cluster.df == pytest.approx(5.0, abs=ABS_TOL)
+    np.testing.assert_allclose(
+        dummy_non_invertible_cluster.cov,
+        np.array([[2.0, 2.0], [2.0, 2.0]]),
+        atol=ABS_TOL,
+    )
+    assert dummy_non_invertible_cluster.log_likelihood is None
+    assert dummy_non_invertible_cluster.bic is None
+
+    # Check that it survives a NaN covariance matrix
+    assert dummy_nan_cluster.df == pytest.approx(5.0, abs=ABS_TOL)
+    np.testing.assert_array_equal(
+        dummy_nan_cluster.cov, np.array([[np.nan, np.nan], [np.nan, np.nan]])
+    )
+    assert dummy_nan_cluster.log_likelihood is None
+    assert dummy_nan_cluster.bic is None
+
+
+# def test_x_means() -> None:
 
 
 # TODO: X-means test cases
