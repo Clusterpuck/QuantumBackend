@@ -56,8 +56,9 @@ class Cluster:
         else:
             # Else, the new y is the steepest +ve direction on the plane
             # Double cross does the trick: (norm X up) X norm
-            screen_x = np.cross(normal, [0, 1, 0])
-            screen_y = np.cross(screen_x, normal)
+            # Reordered to retain x's handed-ness on (+xy when viewing at +z)
+            screen_x = np.cross([0, 1, 0], normal)
+            screen_y = np.cross(normal, screen_x)
             # Since y is always +ve, x direction is consistent
 
             # Normalise before projection step
@@ -70,26 +71,32 @@ class Cluster:
             axis=1,
             arr=self.data,
         )
+        flattened_normal = np.array(
+            [np.dot(self.center, screen_x), np.dot(self.center, screen_y)]
+        )
+        # Assume it's fine for the normal to lose its relative height to data
 
         # Finally, compute and cache BIC info if possible
         self.df = flattened_data.shape[1] * (flattened_data.shape[1] + 3) / 2
         self.cov = np.cov(flattened_data.T)
         try:
             self.log_likelihood = sum(
-                stats.multivariate_normal.logpdf(
-                    x, self.center, self.cov, allow_singular=True
-                )
-                for x in self.data
+                stats.multivariate_normal.logpdf(x, flattened_normal, self.cov)
+                for x in flattened_data
             )
             self.bic = self.df * np.log(self.size) - 2 * self.log_likelihood
             # Larger likelihood (smaller Ishioka BIC) is better
-            # Allow singular attempts to force run with near-zero eigenvalues
-        except ValueError:
-            # Partial FIX
-            # Probably either nans in cov (<2 samples) or <=0 eigenvalues
+        except (ValueError, np.linalg.LinAlgError):
+            # Probably either nans in cov (<2 samples) or low cov eigenvalues
             # Don't bother to calculate, we know we should reject or stop here
             self.log_likelihood = None
             self.bic = None
+
+            # NOTE: LinAlgError occurs for non-0, non-invertible covs
+            # Some reasons include too few data points or low cov eigens
+
+        # TODO: df = 2p, but then why is p this quadratic dims term? Shouldn't p = dims? Confirm reasoning and performance, then correct if needed...
+        # Actually, we can maybe hardcode it to 4 for this geo ver, assuming p=dims?
 
 
 class QueuedXMeans:
