@@ -9,7 +9,7 @@ class VehicleClustererFactory:
     def create(self, clusterer_config: ClusterConfig) -> Clusterer:
         if clusterer_config.type == "kmeans":
             try:
-                # Recursion must not fail, so always try to split on dupes
+                # TODO: Should we handle errors generously for vehicle-level?
                 return KMeansClusterer(
                     clusterer_config.k,
                     allow_less_data=True,
@@ -24,12 +24,9 @@ class VehicleClustererFactory:
                 if "k_init" in clusterer_config.model_extra:
                     params["k_init"] = clusterer_config.k_init
 
-                # Recursion must not fail, so always try to split on dupes
-                return XMeansClusterer(
-                    **params,
-                    allow_less_data=True,
-                    duplicate_clusters="split",
-                )
+                # Currently not supported for route subclustering
+                # (...and not exactly the most recommended even if feasible)
+                return XMeansClusterer(**params)
             except AttributeError:
                 raise ValueError("X-means missing params. Requires 'k_max'.")
         else:

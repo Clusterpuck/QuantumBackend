@@ -22,7 +22,8 @@ vehicle_clusterer_factory = VehicleClustererFactory()
 distance_factory = DistanceFactory()
 solver_factory = SolverFactory()
 
-STATIC_TOKEN = os.environ.get('BACKEND_TOKEN')
+STATIC_TOKEN = os.environ.get("BACKEND_TOKEN")
+
 
 def token_authentication(authorisation: str = Header(None)):
     # Apparently you should add Bearer?
@@ -30,8 +31,10 @@ def token_authentication(authorisation: str = Header(None)):
     print("Received Token", authorisation)
     if authorisation != f"Bearer {STATIC_TOKEN}":
         raise HTTPException(
-            status_code=401, detail="Invalid or missing token",
+            status_code=401,
+            detail="Invalid or missing token",
         )
+
 
 # Helper functions
 def orders_to_cartesian(
@@ -93,9 +96,11 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
 def default_test():
     return "Switching to FastAPI"
 
+
 @app.post("/generate-routes", responses={400: {"model": Message}})
-async def generate_routes(request: RouteInput,
-                          token: str = Depends(token_authentication)):
+async def generate_routes(
+    request: RouteInput, token: str = Depends(token_authentication)
+):
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
@@ -111,7 +116,11 @@ async def generate_routes(request: RouteInput,
 
     # For recursive, we need to cap max clusters, since it stitches on return
     # Since capturing substructures matters progressively less, just k-means it
-    subclusterer = KMeansClusterer(request.solver_config.max_solve_size)
+    subclusterer = KMeansClusterer(
+        request.solver_config.max_solve_size,
+        allow_less_data=True,
+        duplicate_clusters="split",
+    )
 
     vrp_solver = RecursiveCFRS(
         vehicle_clusterer,
