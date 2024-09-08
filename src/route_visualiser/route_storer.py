@@ -1,26 +1,12 @@
-"""
-Driver code to visualise routing data for testing purposes
-
-Arguments
----------
-1. The name of the JSON file in src/data containing RouteInput data
-2. the name of the JSON file in src/data containing the optimal routes per vehicle
-
-Example:
-
-When in src directory (cd src), assuming you have a src/data folder containing all the objects, call
-- python3 visualise_deliveries.py "Locations.json" "Locations_route.json"
-"""
+"""Saves routes to data folder"""
 
 import json
-import sys
 import os
 import matplotlib.pyplot as plt
-import route_visualiser.er_projection as erp
+import numpy as np
+from pydantic_models import RouteInput
 
-from pydantic_models import RouteInput   
-
-def create_graph(locations_file, route, folder_name, file_name) -> None:
+def create_graph(locations_file: str, route: list[int], folder_name: str, file_name: str) -> None:
     """
     Creates a graph and saves to a folder
 
@@ -39,7 +25,7 @@ def create_graph(locations_file, route, folder_name, file_name) -> None:
     locations_path = os.path.join("data", locations_file)
     route = [route]
 
-    lats, longs, orders = reformat_locations(locations_path)
+    lats, longs, orders = __reformat_locations(locations_path)
 
     fig = plt.figure(figsize=(10, 6))
     plt.scatter(longs, lats, color='blue', marker='o')
@@ -51,7 +37,7 @@ def create_graph(locations_file, route, folder_name, file_name) -> None:
     plt.savefig(os.path.join('data', folder_name, file_name + ".png"), dpi=300, bbox_inches='tight')
     plt.close(fig)
 
-def reformat_locations(locations_path):
+def __reformat_locations(locations_path: str) -> tuple[np.array, np.array, dict[int, dict[str,float]]]:
     """
     Extracts the latitudes, longitudes and orders from JSON Object
 
@@ -80,12 +66,12 @@ def reformat_locations(locations_path):
     locations = RouteInput(**locations)
     lats = [location.lat for location in locations.orders]
     longs = [location.lon for location in locations.orders]
-    lats, longs = erp.equi_rect_project(lats, longs)
+    lats, longs = __equi_rect_project(lats, longs)
     orders = {order.order_id: {'lat': order.lat, 'lon': order.lon} for order in locations.orders}
 
     return lats, longs, orders
 
-def __add_lines(routes, orders_dict):
+def __add_lines(routes: list[list[int]], orders_dict: dict[int, dict[str,float]]) -> None:
     """
     Adds arrows for each edge in routes list
 
@@ -116,13 +102,45 @@ def __add_lines(routes, orders_dict):
             end_longs.append(orders_dict[end_id]['lon'])
             end_lats.append(orders_dict[end_id]['lat'])
 
-    start_lats, start_longs = erp.equi_rect_project(start_lat, start_longs)
-    end_lats, end_longs = erp.equi_rect_project(end_lats, end_longs)
+    start_lats, start_longs = __equi_rect_project(start_lat, start_longs)
+    end_lats, end_longs = __equi_rect_project(end_lats, end_longs)
 
     for i in range(len(start_lats)):
         plt.annotate('', xy=(end_longs[i], end_lats[i]), xytext=(start_longs[i], start_lats[i]),
                  arrowprops=dict(facecolor='red', shrink=0.15, headlength=7, headwidth=7, width=3))
 
-#plot_graph()
-#temp_list = [[3, 0, 1, 2, 5, 6, 4]]
-#create_graph("Locations.json", temp_list, "testFolder", "testFile")
+def __equi_rect_project(latitudes: list, longitudes: list) -> tuple[np.array, np.array]:
+    """
+    Use an approximation of equirectangular projection to map latitude and longitude
+    to a 2D plane.
+
+    Parameters
+    ----------
+    latitudes : list of floats
+        List of latitudes for orders
+    longitudes : list of floats
+        List of latitudes for orders
+
+    Returns
+    -------
+    latitudes : ndarray
+        1D, contains array of projected latitudes
+    longitudes : ndarray
+        1D, contains array of projected longitudes
+    """
+    latitudes = np.array(latitudes)
+    longitudes = np.array(longitudes)
+
+    r = 6371  # Radius of Earth
+    centre_point_deg = -31.952258602714696 # Hardcoded to approximate centre of Perth
+
+    # Convert to radians
+    center_latitude_radians = np.radians(centre_point_deg)
+    longitudes_radians = np.radians(longitudes)
+    latitudes_radians = np.radians(latitudes)
+
+    # Apply equirectangular projection
+    longitudes = r * longitudes_radians * np.cos(center_latitude_radians)
+    latitudes = r * latitudes_radians
+
+    return latitudes, longitudes
