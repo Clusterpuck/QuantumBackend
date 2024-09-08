@@ -9,7 +9,7 @@ class VehicleClustererFactory:
     def create(self, clusterer_config: ClusterConfig) -> Clusterer:
         if clusterer_config.type == "kmeans":
             try:
-                # TODO: Should we handle errors generously for vehicle-level?
+                # Can be made stricter for vehicle-level, but keeping for now
                 return KMeansClusterer(
                     clusterer_config.k,
                     allow_less_data=True,
