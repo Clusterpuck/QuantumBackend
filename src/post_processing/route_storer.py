@@ -4,6 +4,12 @@ import json
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(src_dir)
+
 from pydantic_models import RouteInput
 
 def create_graph(locations_file: str, route: list[int], folder_name: str, file_name: str) -> None:

@@ -4,11 +4,8 @@ import sys
 import os
 import pandas as pd
 import ast
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-import post_processing.graph_storer as gs
-import post_processing.route_storer as rs
+import graph_storer as gs
+import route_storer as rs
 
 
 # Calls route_storer
@@ -97,7 +94,7 @@ def visualise_deliveries(df, orders_file) -> None:
             f"{cost_constraint_ratio}_{chain_strength}_{trial}_{relative_cost}"
         )
         route_list = ast.literal_eval(row["route"])
-        rs.create_graph(orders_file, route_list, "sweep_routes", filename)
+        rs.create_graph(orders_file, route_list, "routes", filename)
 
 if __name__ == '__main__':
     post_process()
