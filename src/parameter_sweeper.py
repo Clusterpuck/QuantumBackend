@@ -8,8 +8,6 @@ import json
 import numpy as np
 
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from dwave.system.samplers import DWaveSampler
 from dwave.system.composites import EmbeddingComposite
 
@@ -19,7 +17,6 @@ from route_optimisation.distance_matrix.cartesian_distance_finder import (
     CartesianDistanceFinder,
 )
 from pydantic_models import RouteInput, Order, OrderInput
-from post_processing.route_storer import create_graph
 
 # python parameter_sweeper.py "Locations.json" "tuning_params" "solver_params" "output"
 
@@ -52,6 +49,7 @@ def main() -> None:
     solver_parameters = get_solver_parameters(solver_file)
 
     process(orders, tuning_sets, solver_parameters, output_file)
+
 
 def orders_to_cartesian(
     orders: list[OrderInput],
@@ -165,7 +163,10 @@ def process(
             )
     print("COMPLETED QUANTUM ROUTES")
 
-def create_solver(tuning_set: tuple[int,int], solver_params: dict) -> DWaveSolver:
+
+def create_solver(
+    tuning_set: tuple[int, int], solver_params: dict
+) -> DWaveSolver:
     """
     Creates a D-Wave solver
 
@@ -206,7 +207,6 @@ def create_solver(tuning_set: tuple[int,int], solver_params: dict) -> DWaveSolve
     )
 
 
-# Read payload
 def get_payload(file_path: str) -> list[tuple[Order, Order]]:
     """
     Extracts the orders from a RouteInput JSON
@@ -238,7 +238,6 @@ def get_payload(file_path: str) -> list[tuple[Order, Order]]:
         return orders
 
 
-# Read parameters
 def get_tuning_parameters(file_path: str) -> list[tuple[int, int]]:
     """
     Extracts the tuning parameters from file and returns every combination
@@ -265,13 +264,13 @@ def get_tuning_parameters(file_path: str) -> list[tuple[int, int]]:
                 combinations[key] = value
     combinations = list(
         itertools.product(
-            combinations.get("cost_constraint_ratio"), combinations.get("chain_strength")
+            combinations.get("cost_constraint_ratio"),
+            combinations.get("chain_strength"),
         )
     )
     return combinations
 
 
-# Read D-Wave settings
 def get_solver_parameters(file_path: str) -> dict:
     """
     Extracts the solver parameters from file
@@ -330,5 +329,6 @@ def write_parameters(
         file.write(str(tuning_sets) + "\n")
         file.write(str(solver_parameters) + "\n")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
