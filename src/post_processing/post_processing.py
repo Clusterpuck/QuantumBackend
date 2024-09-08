@@ -7,8 +7,8 @@ import ast
 import graph_storer as gs
 import route_storer as rs
 
-
-# Calls route_storer
+# cd to post_processing
+# python post_processing.py "output" "test1" "Locations.json"
 
 def post_process() -> None:
     input_name = sys.argv[1]
