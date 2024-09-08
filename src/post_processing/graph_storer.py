@@ -1,15 +1,18 @@
+"""Creates heatmap and contour plots, saves to file"""
+
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
+
 def save_heatmap(
     df: pd.DataFrame,
     index: str,
     column: str,
     values: str,
-    file_parts: tuple[str,str],
+    file_parts: tuple[str, str],
 ) -> None:
     """
     Process a dataframe into a heatmap that is saved to file
@@ -48,7 +51,7 @@ def save_contour_plot(
     index: str,
     column: str,
     values: str,
-    file_parts: tuple[str,str],
+    file_parts: tuple[str, str],
 ) -> None:
     """
     Process a dataframe into a contour plot that is saved to file

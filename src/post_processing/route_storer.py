@@ -1,4 +1,4 @@
-"""Saves routes to data folder"""
+"""Saves routes to data/routes folder"""
 
 import json
 import os
@@ -7,12 +7,15 @@ import numpy as np
 import sys
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-src_dir = os.path.abspath(os.path.join(current_dir, '..'))
+src_dir = os.path.abspath(os.path.join(current_dir, ".."))
 sys.path.append(src_dir)
 
 from pydantic_models import RouteInput
 
-def create_graph(locations_file: str, route: list[int], folder_name: str, file_name: str) -> None:
+
+def create_graph(
+    locations_file: str, route: list[int], folder_name: str, file_name: str
+) -> None:
     """
     Creates a graph and saves to a folder
 
@@ -34,16 +37,23 @@ def create_graph(locations_file: str, route: list[int], folder_name: str, file_n
     lats, longs, orders = __reformat_locations(locations_path)
 
     fig = plt.figure(figsize=(10, 6))
-    plt.scatter(longs, lats, color='blue', marker='o')
+    plt.scatter(longs, lats, color="blue", marker="o")
     __add_lines(route, orders)
-    plt.title('Equirectangular Projection Scatter Plot')
-    plt.xlabel('Longitude (km)')
-    plt.ylabel('Latitude (km)')
+    plt.title("Equirectangular Projection Scatter Plot")
+    plt.xlabel("Longitude (km)")
+    plt.ylabel("Latitude (km)")
     plt.grid(True)
-    plt.savefig(os.path.join('data', folder_name, file_name + ".png"), dpi=300, bbox_inches='tight')
+    plt.savefig(
+        os.path.join("data", folder_name, file_name + ".png"),
+        dpi=300,
+        bbox_inches="tight",
+    )
     plt.close(fig)
 
-def __reformat_locations(locations_path: str) -> tuple[np.array, np.array, dict[int, dict[str,float]]]:
+
+def __reformat_locations(
+    locations_path: str,
+) -> tuple[np.array, np.array, dict[int, dict[str, float]]]:
     """
     Extracts the latitudes, longitudes and orders from JSON Object
 
@@ -56,7 +66,7 @@ def __reformat_locations(locations_path: str) -> tuple[np.array, np.array, dict[
     Returns
     -------
     lats : np.array
-        List of latitudes for orders 
+        List of latitudes for orders
     longs : np.array
         List of latitudes for orders
     orders : dict[int, dict[str,float]]
@@ -66,18 +76,24 @@ def __reformat_locations(locations_path: str) -> tuple[np.array, np.array, dict[
             lon: float
         Example: {16: {'lat': -31.899364, 'lon': 115.801288}
     """
-    with open(locations_path, 'r', encoding='utf-8') as file:
+    with open(locations_path, "r", encoding="utf-8") as file:
         locations = json.load(file)
 
     locations = RouteInput(**locations)
     lats = [location.lat for location in locations.orders]
     longs = [location.lon for location in locations.orders]
     lats, longs = __equi_rect_project(lats, longs)
-    orders = {order.order_id: {'lat': order.lat, 'lon': order.lon} for order in locations.orders}
+    orders = {
+        order.order_id: {"lat": order.lat, "lon": order.lon}
+        for order in locations.orders
+    }
 
     return lats, longs, orders
 
-def __add_lines(routes: list[list[int]], orders_dict: dict[int, dict[str,float]]) -> None:
+
+def __add_lines(
+    routes: list[list[int]], orders_dict: dict[int, dict[str, float]]
+) -> None:
     """
     Adds arrows for each edge in routes list
 
@@ -103,19 +119,28 @@ def __add_lines(routes: list[list[int]], orders_dict: dict[int, dict[str,float]]
             start_id = route[i]
             end_id = route[i + 1]
 
-            start_longs.append(orders_dict[start_id]['lon'])
-            start_lat.append(orders_dict[start_id]['lat'])
-            end_longs.append(orders_dict[end_id]['lon'])
-            end_lats.append(orders_dict[end_id]['lat'])
+            start_longs.append(orders_dict[start_id]["lon"])
+            start_lat.append(orders_dict[start_id]["lat"])
+            end_longs.append(orders_dict[end_id]["lon"])
+            end_lats.append(orders_dict[end_id]["lat"])
 
     start_lats, start_longs = __equi_rect_project(start_lat, start_longs)
     end_lats, end_longs = __equi_rect_project(end_lats, end_longs)
 
     for i in range(len(start_lats)):
-        plt.annotate('', xy=(end_longs[i], end_lats[i]), xytext=(start_longs[i], start_lats[i]),
-                 arrowprops=dict(facecolor='red', shrink=0.15, headlength=7, headwidth=7, width=3))
+        plt.annotate(
+            "",
+            xy=(end_longs[i], end_lats[i]),
+            xytext=(start_longs[i], start_lats[i]),
+            arrowprops=dict(
+                facecolor="red", shrink=0.15, headlength=7, headwidth=7, width=3
+            ),
+        )
 
-def __equi_rect_project(latitudes: list, longitudes: list) -> tuple[np.array, np.array]:
+
+def __equi_rect_project(
+    latitudes: list, longitudes: list
+) -> tuple[np.array, np.array]:
     """
     Use an approximation of equirectangular projection to map latitude and longitude
     to a 2D plane.
@@ -138,7 +163,9 @@ def __equi_rect_project(latitudes: list, longitudes: list) -> tuple[np.array, np
     longitudes = np.array(longitudes)
 
     r = 6371  # Radius of Earth
-    centre_point_deg = -31.952258602714696 # Hardcoded to approximate centre of Perth
+    centre_point_deg = (
+        -31.952258602714696
+    )  # Hardcoded to approximate centre of Perth
 
     # Convert to radians
     center_latitude_radians = np.radians(centre_point_deg)
