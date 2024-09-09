@@ -1,8 +1,9 @@
 """Validate and decide what ATSP solver to build for the API"""
 
+import os
+
 from dwave.system.samplers import DWaveSampler
 from dwave.system.composites import EmbeddingComposite
-import os
 
 from route_optimisation.route_solver.brute_force_solver import BruteForceSolver
 from route_optimisation.route_solver.dwave_solver import DWaveSolver
