@@ -1,3 +1,5 @@
+"""Quantum Solver using D-Wave"""
+
 import numpy as np
 import dimod
 
@@ -6,6 +8,7 @@ from .quantum_tsp.tsp_formulation import TSPFormulation
 
 
 class DWaveSolver(RouteSolver):
+    """D-Wave Solver to find best route in distance matrix"""
 
     def __init__(
         self,
