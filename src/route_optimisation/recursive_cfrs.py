@@ -1,5 +1,7 @@
-# NOTE: Might unify under a VRPSolver interface in the future for similar heuristics
+"""Vehicle Routing Problem (VRP) Solver using cluster-first route-second heuristic (CFRS)"""
 
+# NOTE: Might unify under a VRPSolver interface in the future for similar heuristics
+from typing import Generator
 import numpy as np
 
 from pydantic_models import Order
@@ -9,6 +11,7 @@ from route_optimisation.route_solver.route_solver import RouteSolver
 
 
 class RecursiveCFRS:
+    """Solves VRP via CFRS using recursive clustering"""
 
     def __init__(
         self,
@@ -45,8 +48,20 @@ class RecursiveCFRS:
         self.__max_solve_size = max_solve_size
 
     # Helper functions
-    def __flatten_list(self, deep_list):
-        # Generator to flatten arbitrarily nested lists
+    def __flatten_list(self, deep_list: list) -> Generator[Order, None, None]:
+        """
+        Generator to flatten arbitrarily nested lists
+
+        Parameters
+        ----------
+        deep_list : list
+            Usually list containing nested lists
+
+        Yields
+        ------
+        item: Order
+            Order from nested list
+        """
         for item in deep_list:
             if isinstance(item, list):
                 yield from self.__flatten_list(item)
