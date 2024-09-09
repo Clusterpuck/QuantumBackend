@@ -1,3 +1,5 @@
+"""Validate and decide what distance metric the solver will use for the API"""
+
 import os
 
 from route_optimisation.distance_matrix.cartesian_distance_finder import (
@@ -11,8 +13,29 @@ from route_optimisation.distance_matrix.distance_finder import DistanceFinder
 
 
 class DistanceFactory:
-    # Validate and decide what distance metric the solver will use for the API
+    """
+    Validate and decide what distance metric the solver will use for the API
+    """
+
     def create(self, distance_type: str) -> DistanceFinder:
+        """
+        Creates distance finder based on provided distance type
+
+        Parameters
+        ----------
+        distance_type: str
+            Type of distance finder
+
+        Returns
+        -------
+        DistanceFinder
+            Specific distance finder object
+
+        Raises
+        ------
+        ValueError
+            If distance type is unknown
+        """
         if distance_type == "cartesian":
             return CartesianDistanceFinder()
         elif distance_type == "mapbox":
