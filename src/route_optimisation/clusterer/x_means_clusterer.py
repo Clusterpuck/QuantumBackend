@@ -1,3 +1,5 @@
+"""Clustering using x-means"""
+
 import numpy as np
 
 from pydantic_models import Order
@@ -11,6 +13,7 @@ from route_optimisation.clusterer.resources.geo_x_means import GeoXMeans
 
 
 class XMeansClusterer(Clusterer):
+    """Clustering using x-means"""
 
     def __init__(self, k_max: int, k_init: int = 1):
         """

@@ -1,6 +1,7 @@
-import numpy as np
 import requests
 import time
+
+import numpy as np
 
 from route_optimisation.distance_matrix.distance_finder import DistanceFinder
 from pydantic_models import Order
@@ -43,12 +44,13 @@ class MapboxRequester:
     def query_mapbox(self, nodes: list[tuple[Order, Order]]) -> requests.Response:
         # Do only the hard-to-test, external API part
         # Matrix API v1 has a rate limit of 60s, so allow max 1 retry
+        # TODO: Pylint warns of W3101 (No time-out) for these 2 requests - Agam
         req = requests.get(self.__construct_url(nodes))
         if req.status_code == 429:
             time.sleep(60)
             req = requests.get(self.__construct_url(nodes))
             # Barring API change, this should always work. Probably.
-        
+
         return req
 
 

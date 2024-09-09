@@ -1,3 +1,5 @@
+"""Clustering using k-means++"""
+
 from typing import Literal
 import numpy as np
 from sklearn.cluster import KMeans
@@ -7,6 +9,7 @@ from pydantic_models import Order
 
 
 class KMeansClusterer(Clusterer):
+    """Clustering using k-means++"""
 
     def __init__(
         self,
