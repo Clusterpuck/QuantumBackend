@@ -1,3 +1,5 @@
+"""Create a Travelling Salesman Problem QUBO formulation"""
+
 import numpy as np
 
 
@@ -165,6 +167,25 @@ class TSPFormulation:
         constraint_factor: int,
         is_circuit: bool,
     ) -> dict[tuple[int, int], int]:
+        """
+        Creates the QUBO TSP formulation for a distance matrix
+
+        Parameters
+        ----------
+        distance_matrix: np.ndarray
+            A 2D distance matrix
+        cost_factor: int
+            Factor to scale costs terms
+        constraint_factor: int
+            Factor to scale constraints for time and position terms
+        is_circuit: bool
+            If formulation should be a circuit or a path
+
+        Returns
+        -------
+        dict[tuple[int, int], int]
+            Contains union of all terms for the QUBO
+        """
         # Normalise, so that relative scaling factors work
         max_distance = np.max(np.array(distance_matrix))
         scaled_matrix = distance_matrix / max_distance
