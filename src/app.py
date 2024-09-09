@@ -1,7 +1,9 @@
-import random
-from fastapi.responses import JSONResponse
-import numpy as np
+"""Provides endpoint for quantum route generation"""
+
 import os
+
+import numpy as np
+from fastapi.responses import JSONResponse
 from fastapi import FastAPI, HTTPException, Depends, Header
 
 from vehicle_clusterer_factory import VehicleClustererFactory
@@ -14,8 +16,6 @@ from solver_factory import SolverFactory
 
 app = FastAPI()
 
-facts = ["One", "Two", "Three", "Four", "Five"]
-
 # Simple factories
 # This relocates and bundles specialised validation/config logic
 vehicle_clusterer_factory = VehicleClustererFactory()
@@ -25,8 +25,20 @@ solver_factory = SolverFactory()
 STATIC_TOKEN = os.environ.get("BACKEND_TOKEN")
 
 
-def token_authentication(authorisation: str = Header(None)):
-    # Apparently you should add Bearer?
+def token_authentication(authorisation: str = Header(None)) -> None:
+    """
+    Authenticates request
+
+    Parameters
+    ----------
+    authorisation: str
+        token
+
+    Raises
+    ------
+    HTTPException
+        Unauthorised access due to invalid/missing token
+    """
     print("Our Token", STATIC_TOKEN)
     print("Received Token", authorisation)
     if authorisation != f"Bearer {STATIC_TOKEN}":
@@ -48,12 +60,12 @@ def orders_to_cartesian(
 
     Parameters
     ----------
-    orders: list of OrderInput
+    orders: list[OrderInput]
         The raw structs containing Customer IDs, latitude and longitude
 
     Returns
     -------
-    list of Order
+    cartesian_orders: list[Order]
         Orders with additional x, y, z coordinate info
     """
     # NOTE: Doesn't cohere well with routing code, being an input pre-processor
@@ -78,6 +90,16 @@ def orders_to_cartesian(
 
 
 def display_cluster_tree(deep_list: list, depth: int) -> None:
+    """
+    Recursively displays the cluster tree from route generation
+
+    Parameters
+    ----------
+    deep_list: list
+        list containing list of orders and/or lists
+    depth: int
+        Depth of the cluster tree
+    """
     # Assumes correctly formatted cluster tree
     if len(deep_list) != 0:
         if isinstance(deep_list[0], list):
@@ -94,6 +116,7 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
 # Endpoints
 @app.get("/")
 def default_test():
+    """Default endpoint"""
     return "Switching to FastAPI"
 
 
@@ -101,6 +124,29 @@ def default_test():
 async def generate_routes(
     request: RouteInput, token: str = Depends(token_authentication)
 ):
+    """
+    Post endpoint that generates order allocation for routes
+
+    Parameters
+    ----------
+    request: RouteInput
+        Configuration of vehicle routing problem
+    token: str
+        Token for authentication
+
+    Returns
+    -------
+    output: list[list[int]]
+        list containing a list of order ids.
+        Each inner list represents a vehicle route
+
+    Raises
+    ------
+    ValueError
+        Return JSON response on validation errors
+    RuntimeError
+        Return JSON response on errors in runtime
+    """
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
