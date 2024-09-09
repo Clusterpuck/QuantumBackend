@@ -152,9 +152,7 @@ def process(
                     "route": [route],
                 }
             )
-            file_exists = os.path.isfile(
-                os.path.join("data", output_file + ".csv")
-            )
+            file_exists = os.path.isfile(os.path.join("data", output_file + ".csv"))
             trial_df.to_csv(
                 os.path.join("data", output_file + ".csv"),
                 index=False,
@@ -164,9 +162,7 @@ def process(
     print("COMPLETED QUANTUM ROUTES")
 
 
-def create_solver(
-    tuning_set: tuple[int, int], solver_params: dict
-) -> DWaveSolver:
+def create_solver(tuning_set: tuple[int, int], solver_params: dict) -> DWaveSolver:
     """
     Creates a D-Wave solver
 
