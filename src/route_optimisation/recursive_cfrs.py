@@ -55,7 +55,7 @@ class RecursiveCFRS:
         Parameters
         ----------
         deep_list : list
-            Usually list containing nested lists
+            list containing nested lists
 
         Yields
         ------

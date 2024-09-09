@@ -6,15 +6,17 @@ Aimed to interface with https://github.com/Clusterpuck/QuantumDelivery
 
 ## Recursive Cluster-First, Route-Second
 
-Partition into vehicle routes, then solve for heuristically optimal visit order via recursive clustering.
+Partition into vehicle routes, then solve for heuristically optimal visit order via recursive clustering. Routes from recursive clusters are merged together to form a larger route. Recursive clustering is necessary with current hardware limitations with D-Wave Ocean.  
 
-All orders are partitioned into routes per vehicle, representing a cluster.
+The [vehicle clusterer](#clusterer) allocates orders to clusters that represent delivery vehicles. Each cluster is recursively sub-divided into smaller clusters.
 
-If a cluster's size (the number of orders within the cluster), exceeds the sub-cluster threshold, the cluster is partitioned into sub-clusters.
+- If a cluster's size is less than or equal to threshold, a [distance matrix](#distance-matrix) between orders is created. A [route solver](#route-solver) is used to find the best route from the distance matrix and returns the visit order to the cluster.
 
-If a cluster's size is within the threshold, a [distance matrix](#distance-matrix) between orders is created. A [route solver](#route-solver) is used to find the optimal route from the distance matrix and returns the visit order to the cluster.
+- If a cluster's size (the number of orders within the cluster), exceeds the sub-cluster threshold, the cluster is partitioned into sub-cluster using [k-means++](#k-means). Recursion continues for each child cluster
 
-When solving parent clusters, the end of each child route is connected to the start of each other child route. The respective orders are part of the [distance matrix](#distance-matrix).
+- When solving parent clusters, each child cluster will have a best route allocated via recursion. To solve a parent cluster, each child cluster must be combined to represent a larger route. This has been implemented by creating a [distance matrix](#distance-matrix) where the end of each child route is connected to the start of each other child route. A [route solver](#route-solver) will then find the best route between all child clusters. The parent cluster will then contain the full route between all the child routes.
+
+After recursion, this will result in the ordered allocation of deliveries for all routes.
 
 ## Clusterer
 
@@ -22,19 +24,21 @@ Contains the methods to define clustering strategies.
 
 ### K-Means++
 
-Clusters delivery locations via K-means++.
+K-means++ is an unsupervised machine learning algorithm that partitions data points into k clusters.
+This program uses the greedy k-means++ implementation. 
+More information can be found here: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
 
-Requires a 'k' value, a number of clusters to be made
+Requires a 'k' value for the number of clusters to be made
 
-Will result in k different routes
+Will result in exactly 'k' different routes
 
 ### X-Means
 
 Clusters delivery locations via X-means.
 
-Requires a k-max value, the maximum number of possible clusters
+Requires a k-max value for the maximum number of possible clusters
 
-Will result 1 to k-max different routes
+Will result 1 to k-max different clusters
 
 ## Distance Matrix
 
@@ -61,7 +65,7 @@ Contains the methods to define the solver to find optimal route in a cluster
 
 ### Brute Force Solver
 
-Generates every permutation of possible routes and iterates through them to find the optimal route.
+Generates every permutation of possible routes within a distance matrix and iterates through them to find the optimal route.
 
 Guaranteed to find optimal route.
 
