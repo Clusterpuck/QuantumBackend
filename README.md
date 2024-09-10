@@ -10,6 +10,8 @@ More details on the quantum solution can be viewed [here]()
 
 Endpoints aimed to be used by https://github.com/Clusterpuck/QuantumDelivery
 
+The repository contains a [parameter sweeper](src/parameter_sweeper.py) for sweeping a range of D-Wave parameters for fine-tuning. The output file can be processed by https://github.com/Scrubzie/QuantumPostProcessing
+
 ## How To Run
 
 [app.py](src/app.py) provides the FastAPI framework
