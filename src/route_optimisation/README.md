@@ -2,7 +2,6 @@
 
 Aims to provide a solution to the asymmetric vehicle routing problem.
 After receiving a list of delivery orders and the total number of vehicles, the program returns the ordered allocation of deliveries for all routes.
-Aimed to interface with https://github.com/Clusterpuck/QuantumDelivery
 
 ## Recursive Cluster-First, Route-Second
 

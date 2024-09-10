@@ -1,6 +1,16 @@
-# Quantum Computing Backend for Vehicle Routing  
+# Quantum Computing Python Backend for Vehicle Routing  
 
-Provides basic framework for exposing backend end points for providing quantum determinations of routing data.
+Uses FastAPI to provide a service to generate delivery routes for a given vehicle routing problem using D-Wave's quantum annealers.
+
+This repository aims to use D-Wave's quantum cloud services to develop a future-oriented solution for quantum routing optimisation. We are assuming that advancements in technology will enhance quantum computing hardware and lead to the discovery of new quantum algorithms. This solution aims to provide high modularity and scalability for future development.
+
+More details on route optimisation can be viewed [here](src/route_optimisation/README.md)
+
+More details on the quantum solution can be viewed [here]()
+
+Endpoints aimed to be used by https://github.com/Clusterpuck/QuantumDelivery
+
+## How To Run
 
 [app.py](src/app.py) provides the FastAPI framework
 
