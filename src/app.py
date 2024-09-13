@@ -2,11 +2,12 @@ import random
 from fastapi.responses import JSONResponse
 import numpy as np
 import os
+import math
 from fastapi import FastAPI, HTTPException, Depends, Header
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
-from pydantic_models import Message, RouteInput, Order, OrderInput
+from pydantic_models import Message, RouteInput, Order, OrderInput, DepotInput, Depot
 from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 from route_optimisation.recursive_cfrs import RecursiveCFRS
 from solver_factory import SolverFactory
@@ -90,6 +91,57 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
             print("  " * depth + f"Leaf: {[o.order_id for o in deep_list]}")
         # Ignore empty branches (though that could be a bug if so)
 
+def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput):
+
+    # Convert to cartesian
+    r = 6371
+    r_lat, r_lon = np.deg2rad(depot.lat), np.deg2rad(depot.lon)
+    depot = Depot(
+        lat=depot.lat,
+        lon=depot.lon,
+        x=r * np.cos(r_lat) * np.cos(r_lon),
+        y=r * np.cos(r_lat) * np.sin(r_lon),
+        z=r * np.sin(r_lat),
+    )
+
+    orders_dict = {order.order_id: order for order in orders}
+    # Set of pairs
+    pairs = []
+    n = len(route)
+
+    for i in range(n):
+        pair = (route[i], route[(i + 1) % n]) # Should wrap around
+        pairs.append(pair)
+
+    best_length = -float('inf')
+    best_pair = None
+    for pair in pairs:
+        end = orders_dict.get(pair[0])
+        start = orders_dict.get(pair[1])
+
+        # Maximise start_to_end, minimise everything between depots
+        start_to_end = math.dist((start.x, start.y, start.z), (end.x, end.y, end.z))
+        depot_to_start = math.dist((depot.x, depot.y, depot.z), (start.x, start.y, start.z))
+        end_to_depot = math.dist((end.x, end.y, end.z), (depot.x, depot.y, depot.z))
+        length = start_to_end - (depot_to_start + end_to_depot)
+        if length > best_length:
+            best_length = length
+            best_pair = pair
+
+    start_index = route.index(best_pair[1])
+    end_index = route.index(best_pair[0])
+
+    # Extract segments before and after the best_pair
+    if start_index < end_index:
+        # Case when best_pair[0] comes before best_pair[1] in the route
+        new_route = route[start_index:end_index + 1]
+        new_route.extend(route[:start_index])
+        new_route.extend(route[end_index + 1:])
+    else:
+        # Case when best_pair[0] comes after best_pair[1] in the route
+        new_route = route[start_index:] + route[:end_index + 1]
+
+    return new_route
 
 # Endpoints
 @app.get("/")
@@ -155,9 +207,9 @@ async def generate_routes(
     # Extract just the IDs, keeping double nested shape
     output = [[o.order_id for o in v] for v in optimal_route_per_vehicle]
 
-    if request.depot is None:
-        print("Depot is none")
-    else:
-        print(request.depot.lat, request.depot.lon)
+    # Reorder according to depot
+    if request.depot is not None:
+        for i, route in enumerate(output):
+            output[i] = depot_reorder(route, new_orders, request.depot)
 
     return output
