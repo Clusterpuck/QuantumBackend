@@ -91,8 +91,24 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
             print("  " * depth + f"Leaf: {[o.order_id for o in deep_list]}")
         # Ignore empty branches (though that could be a bug if so)
 
-def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput):
+def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput) -> list[int]:
+    """
+    Reorder a route to minimise the extra cost of considering depot location
 
+    Parameters
+    ----------
+    route: list of int
+        Ordered list of order IDs
+    orders: list of Order
+        list of all orders in VRP
+    depot: DepotInput
+        position of depot
+
+    Returns
+    -------
+    new_route: list of int
+        Ordered list of order IDs after considering depot position
+    """
     # Convert to cartesian
     r = 6371
     r_lat, r_lon = np.deg2rad(depot.lat), np.deg2rad(depot.lon)
@@ -104,15 +120,17 @@ def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput):
         z=r * np.sin(r_lat),
     )
 
+    # Create a dictionary for quick access
     orders_dict = {order.order_id: order for order in orders}
-    # Set of pairs
+    
+    # Generate every list of every pair
     pairs = []
     n = len(route)
-
     for i in range(n):
         pair = (route[i], route[(i + 1) % n]) # Should wrap around
         pairs.append(pair)
 
+    # Loop to find best pair
     best_length = -float('inf')
     best_pair = None
     for pair in pairs:
@@ -128,10 +146,9 @@ def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput):
             best_length = length
             best_pair = pair
 
+    # Reconstruct route with best pair
     start_index = route.index(best_pair[1])
     end_index = route.index(best_pair[0])
-
-    # Reconstruct route
     if start_index < end_index:
         # start_index is before end
         new_route = route[start_index:end_index + 1]
