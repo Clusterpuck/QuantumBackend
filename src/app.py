@@ -155,4 +155,9 @@ async def generate_routes(
     # Extract just the IDs, keeping double nested shape
     output = [[o.order_id for o in v] for v in optimal_route_per_vehicle]
 
+    if request.depot is None:
+        print("Depot is none")
+    else:
+        print(request.depot.lat, request.depot.lon)
+
     return output
