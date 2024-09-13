@@ -227,6 +227,7 @@ async def generate_routes(
     # Reorder according to depot
     if request.depot is not None:
         for i, route in enumerate(output):
-            output[i] = depot_reorder(route, new_orders, request.depot)
+            if len(route) > 1: # Don't do anything for single order routes
+                output[i] = depot_reorder(route, new_orders, request.depot)
 
     return output
