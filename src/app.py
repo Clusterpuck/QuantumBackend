@@ -131,14 +131,14 @@ def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput):
     start_index = route.index(best_pair[1])
     end_index = route.index(best_pair[0])
 
-    # Extract segments before and after the best_pair
+    # Reconstruct route
     if start_index < end_index:
-        # Case when best_pair[0] comes before best_pair[1] in the route
+        # start_index is before end
         new_route = route[start_index:end_index + 1]
         new_route.extend(route[:start_index])
         new_route.extend(route[end_index + 1:])
     else:
-        # Case when best_pair[0] comes after best_pair[1] in the route
+        # start_index is after end
         new_route = route[start_index:] + route[:end_index + 1]
 
     return new_route
