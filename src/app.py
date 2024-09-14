@@ -77,6 +77,31 @@ def orders_to_cartesian(
 
     return cartesian_orders
 
+def depot_to_cartesian(depot_input: DepotInput) -> Depot:
+    """
+    Convert depot latitude and longitude to 3D Cartesian
+
+    Parameters
+    ----------
+    depot_input: DepotInput
+        contains depot's latitude and longitude
+
+    Returns
+    -------
+    depot: Depot
+        depot with additional x, y, z coordinate info
+    """
+    r = 6371
+    r_lat, r_lon = np.deg2rad(depot_input.lat), np.deg2rad(depot_input.lon)
+    depot = Depot(
+        lat=depot_input.lat,
+        lon=depot_input.lon,
+        x=r * np.cos(r_lat) * np.cos(r_lon),
+        y=r * np.cos(r_lat) * np.sin(r_lon),
+        z=r * np.sin(r_lat),
+    )
+    return depot
+
 
 def display_cluster_tree(deep_list: list, depth: int) -> None:
     # Assumes correctly formatted cluster tree
@@ -110,15 +135,7 @@ def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput) -> l
         Ordered list of order IDs after considering depot position
     """
     # Convert to cartesian
-    r = 6371
-    r_lat, r_lon = np.deg2rad(depot.lat), np.deg2rad(depot.lon)
-    depot = Depot(
-        lat=depot.lat,
-        lon=depot.lon,
-        x=r * np.cos(r_lat) * np.cos(r_lon),
-        y=r * np.cos(r_lat) * np.sin(r_lon),
-        z=r * np.sin(r_lat),
-    )
+    depot = depot_to_cartesian(depot)
 
     # Create a dictionary for quick access
     orders_dict = {order.order_id: order for order in orders}
