@@ -137,7 +137,7 @@ def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
     
     best_length = -float('inf')
     best_pair = None
-    for i in range(len(route)):
+    for i in range(len(route) - 1, -1, -1):
         start = route[i]
         end = route[(i + 1) % len(route)]
 
@@ -146,17 +146,33 @@ def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
         depot_to_start = math.dist((depot.x, depot.y, depot.z), (start.x, start.y, start.z))
         end_to_depot = math.dist((end.x, end.y, end.z), (depot.x, depot.y, depot.z))
         length = start_to_end - (depot_to_start + end_to_depot)
+        print(start.order_id, end.order_id, length)
         if length > best_length:
             best_length = length
-            best_pair = i # Index of route's start
-
-    start_index = best_pair
-    end_index = (best_pair + 1) % len(route)
-    if start_index < end_index:
-        reordered_route = route
+            best_pair = i # Index of route's end
+    
+    print(best_pair)
+    start_index = best_pair + 1
+    end_index = best_pair
+    if start_index == len(route)-1:
+        print("if")
+        #reordered_route = route[end_index:] + route[start_index:end_index + 1]
+        reordered_route = route[end_index+1:] + route[:start_index]
+        print(route[end_index+1:])
+        print(route[:start_index])
     else:
+        print("else")
         reordered_route = route[start_index:] + route[:end_index + 1]
+        print(route[start_index:])
+        print(route[:end_index + 1])
 
+    """end_index = (best_pair + 1) % len(route)"""
+    """if start_index < end_index:
+        print("if")
+        reordered_route = route[:end_index + 1] + route[start_index:]
+        print(route[:end_index + 1])
+        print(route[start_index:])
+    """
     # Recreate route with only order ids
     new_route = [order.order_id for order in reordered_route]
 
