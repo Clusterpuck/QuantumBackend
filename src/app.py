@@ -138,8 +138,8 @@ def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
     best_length = -float('inf')
     best_pair = None
     for i in range(len(route)):
-        end = route[i] # End of the route, before depot
-        start = route[(i + 1) % len(route)] # Start of route, after depot
+        start = route[i]
+        end = route[(i + 1) % len(route)]
 
         # Maximise start_to_end, minimise everything between depots
         start_to_end = math.dist((start.x, start.y, start.z), (end.x, end.y, end.z))
@@ -148,10 +148,10 @@ def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
         length = start_to_end - (depot_to_start + end_to_depot)
         if length > best_length:
             best_length = length
-            best_pair = i # Index of route's end
+            best_pair = i # Index of route's start
 
-    start_index = best_pair + 1
-    end_index = best_pair
+    start_index = best_pair
+    end_index = (best_pair + 1) % len(route)
     if start_index < end_index:
         reordered_route = route
     else:
