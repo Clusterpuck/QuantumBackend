@@ -116,16 +116,14 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
             print("  " * depth + f"Leaf: {[o.order_id for o in deep_list]}")
         # Ignore empty branches (though that could be a bug if so)
 
-def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput) -> list[int]:
+def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
     """
     Reorder a route to minimise the extra cost of considering depot location
 
     Parameters
     ----------
-    route: list of int
-        Ordered list of order IDs
-    orders: list of Order
-        list of all orders in VRP
+    route: list of Order
+        Ordered route containing orders
     depot: DepotInput
         position of depot
 
@@ -136,23 +134,12 @@ def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput) -> l
     """
     # Convert to cartesian
     depot = depot_to_cartesian(depot)
-
-    # Create a dictionary for quick access
-    orders_dict = {order.order_id: order for order in orders}
     
-    # Generate every list of every pair
-    pairs = []
-    n = len(route)
-    for i in range(n):
-        pair = (route[i], route[(i + 1) % n]) # Should wrap around
-        pairs.append(pair)
-
-    # Loop to find best pair
     best_length = -float('inf')
     best_pair = None
-    for pair in pairs:
-        end = orders_dict.get(pair[0])
-        start = orders_dict.get(pair[1])
+    for i in range(len(route)):
+        end = route[i] # End of the route, before depot
+        start = route[(i + 1) % len(route)] # Start of route, after depot
 
         # Maximise start_to_end, minimise everything between depots
         start_to_end = math.dist((start.x, start.y, start.z), (end.x, end.y, end.z))
@@ -161,19 +148,17 @@ def depot_reorder(route: list[int], orders: list[Order], depot: DepotInput) -> l
         length = start_to_end - (depot_to_start + end_to_depot)
         if length > best_length:
             best_length = length
-            best_pair = pair
+            best_pair = i # Index of route's end
 
-    # Reconstruct route with best pair
-    start_index = route.index(best_pair[1])
-    end_index = route.index(best_pair[0])
+    start_index = best_pair + 1
+    end_index = best_pair
     if start_index < end_index:
-        # start_index is before end
-        new_route = route[start_index:end_index + 1]
-        new_route.extend(route[:start_index])
-        new_route.extend(route[end_index + 1:])
+        reordered_route = route
     else:
-        # start_index is after end
-        new_route = route[start_index:] + route[:end_index + 1]
+        reordered_route = route[start_index:] + route[:end_index + 1]
+
+    # Recreate route with only order ids
+    new_route = [order.order_id for order in reordered_route]
 
     return new_route
 
@@ -243,8 +228,8 @@ async def generate_routes(
 
     # Reorder according to depot
     if request.depot is not None:
-        for i, route in enumerate(output):
+        for i, route in enumerate(optimal_route_per_vehicle):
             if len(route) > 1: # Don't do anything for single order routes
-                output[i] = depot_reorder(route, new_orders, request.depot)
+                output[i] = depot_reorder(route, request.depot)
 
     return output
