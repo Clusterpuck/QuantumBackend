@@ -1,6 +1,7 @@
 # Let these act as both API validation and system-wide models
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Optional
 
 
 class Message(BaseModel):
@@ -38,10 +39,22 @@ class SolverConfig(BaseModel):
     max_solve_size: int = Field(ge=1)
 
 
+class DepotInput(BaseModel):
+    # Position of the depot
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
+
+class Depot(DepotInput):
+    # Adds cartesian fields, allowing common pre-computation
+    x: float
+    y: float
+    z: float
+
+
 class RouteInput(BaseModel):
     vehicle_cluster_config: ClusterConfig
     solver_config: SolverConfig
-
+    depot: Optional[DepotInput] = None
     orders: list[OrderInput]
 
     @field_validator("orders")
