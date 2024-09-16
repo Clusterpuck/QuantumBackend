@@ -61,12 +61,12 @@ def orders_to_cartesian(
 
     Parameters
     ----------
-    orders: list[OrderInput]
+    orders: list of OrderInput
         The raw structs containing Customer IDs, latitude and longitude
 
     Returns
     -------
-    cartesian_orders: list[Order]
+    cartesian_orders: list of Order
         Orders with additional x, y, z coordinate info
     """
     # NOTE: Doesn't cohere well with routing code, being an input pre-processor
@@ -208,7 +208,7 @@ async def generate_routes(
 
     Returns
     -------
-    output: list[list[int]]
+    output: list of routes
         list containing a list of order ids.
         Each inner list represents a vehicle route
 

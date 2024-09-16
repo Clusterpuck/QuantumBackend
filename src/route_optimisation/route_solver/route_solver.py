@@ -20,8 +20,8 @@ class RouteSolver(ABC):
 
         Returns
         -------
-        tuple[list[int], int]
-            List[int] represents the list of the optimal route containing order_ids
+        (list of int, int)
+            list of int represents the list of the optimal route containing order_ids
             int represents the total cost of the route
         """
         pass

@@ -21,9 +21,10 @@ class BruteForceSolver(RouteSolver):
 
         Returns
         -------
-        tuple[list[int], int]
-            List[int] represents the list of the optimal route containing order_ids
-            int represents the total cost of the route
+        list of best_route : list of int
+            List of the optimal route containing order_ids
+        lowest_cost : int
+            Total cost of the route
         """
         n = len(distance_matrix)
         index = list(range(n))
@@ -46,9 +47,9 @@ class BruteForceSolver(RouteSolver):
 
         Parameters
         ----------
-        route: tuple[int, ...]
+        route: (int, ...)
             A tuple of order ids
-            The size should equal be as long as the matrix
+            The size should be as long as the matrix
         distance_matrix: ndarray
             2D, Asymmetric distance matrix
 

@@ -102,9 +102,9 @@ def process(
 
     Parameters
     ----------
-    orders: list[tuple[Order, Order]
+    orders: list of (Order, Order)
         List of nodes where tuple contains the start and end of a route
-    tuning_sets: list[tuple[int, int]
+    tuning_sets: list of (int, int)
         Combinations of tuning parameters
     solver_parameters: dict
         Parameters of the solver that are to remain constant
@@ -168,7 +168,7 @@ def create_solver(tuning_set: tuple[int, int], solver_params: dict) -> DWaveSolv
 
     Parameters
     ----------
-    tuning_set: tuple[int, int]
+    tuning_set: (int, int)
         scale_factor and chain_strength
     solver_params: dict
         Other solver parameters
@@ -214,7 +214,7 @@ def get_payload(file_path: str) -> list[tuple[Order, Order]]:
 
     Returns
     -------
-    orders: list[tuple[Order, Order]]
+    orders: list of (Order, Order)
         list containing the start and end of each node.
         In the context of parameter_sweeper, the start and end orders will
         always be the same.
@@ -246,7 +246,7 @@ def get_tuning_parameters(file_path: str) -> list[tuple[int, int]]:
 
     Returns
     -------
-    combinations: list[tuple[int, int]
+    combinations: list of (int, int)
         list containing every combination of tuning parameters
     """
     combinations = {}
@@ -305,11 +305,11 @@ def write_parameters(
 
     Parameters
     ----------
-    orders: list[tuple[Order, Order]]
+    orders: list of (Order, Order)
         list containing the start and end of each node.
         In the context of parameter_sweeper, the start and end orders will
         always be the same.
-    tuning_sets: list[tuple[int, int]]
+    tuning_sets: list of (int, int)
         list containing every combination of tuning parameters
     solver_parameters: dict
         dict containing the solver parameter name and its value
