@@ -1,6 +1,7 @@
 """Provides endpoint for quantum route generation"""
 
 import os
+import math
 
 import numpy as np
 from fastapi.responses import JSONResponse
@@ -8,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
-from pydantic_models import Message, RouteInput, Order, OrderInput
+from pydantic_models import Message, RouteInput, Order, OrderInput, DepotInput, Depot
 from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 from route_optimisation.recursive_cfrs import RecursiveCFRS
 from solver_factory import SolverFactory
@@ -88,6 +89,31 @@ def orders_to_cartesian(
 
     return cartesian_orders
 
+def depot_to_cartesian(depot_input: DepotInput) -> Depot:
+    """
+    Convert depot latitude and longitude to 3D Cartesian
+
+    Parameters
+    ----------
+    depot_input: DepotInput
+        contains depot's latitude and longitude
+
+    Returns
+    -------
+    depot: Depot
+        depot with additional x, y, z coordinate info
+    """
+    r = 6371
+    r_lat, r_lon = np.deg2rad(depot_input.lat), np.deg2rad(depot_input.lon)
+    depot = Depot(
+        lat=depot_input.lat,
+        lon=depot_input.lon,
+        x=r * np.cos(r_lat) * np.cos(r_lon),
+        y=r * np.cos(r_lat) * np.sin(r_lon),
+        z=r * np.sin(r_lat),
+    )
+    return depot
+
 
 def display_cluster_tree(deep_list: list, depth: int) -> None:
     """
@@ -112,6 +138,52 @@ def display_cluster_tree(deep_list: list, depth: int) -> None:
             print("  " * depth + f"Leaf: {[o.order_id for o in deep_list]}")
         # Ignore empty branches (though that could be a bug if so)
 
+def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
+    """
+    Reorder a route to minimise the extra cost of considering depot location
+
+    Parameters
+    ----------
+    route: list of Order
+        Ordered route containing orders
+    depot: DepotInput
+        position of depot
+
+    Returns
+    -------
+    new_route: list of int
+        Ordered list of order IDs after considering depot position
+    """
+    # Convert to cartesian
+    depot = depot_to_cartesian(depot)
+    
+    best_length = -float('inf')
+    best_pair = None
+    for i in range(len(route) - 1, -1, -1):
+        start = route[i]
+        end = route[(i + 1) % len(route)]
+
+        # Maximise start_to_end, minimise everything between depots
+        start_to_end = math.dist((start.x, start.y, start.z), (end.x, end.y, end.z))
+        depot_to_start = math.dist((depot.x, depot.y, depot.z), (start.x, start.y, start.z))
+        end_to_depot = math.dist((end.x, end.y, end.z), (depot.x, depot.y, depot.z))
+        length = start_to_end - (depot_to_start + end_to_depot)
+        if length > best_length:
+            best_length = length
+            best_pair = i # Index of route's end
+    
+    # Reorder routes according to new start and end indices
+    start_index = best_pair + 1
+    end_index = best_pair
+    if start_index == len(route)-1:
+        reordered_route = route[end_index+1:] + route[:start_index]
+    else:
+        reordered_route = route[start_index:] + route[:end_index + 1]
+
+    # Recreate route with only order ids
+    new_route = [order.order_id for order in reordered_route]
+
+    return new_route
 
 # Endpoints
 @app.get("/")
@@ -200,5 +272,11 @@ async def generate_routes(
 
     # Extract just the IDs, keeping double nested shape
     output = [[o.order_id for o in v] for v in optimal_route_per_vehicle]
+
+    # Reorder according to depot
+    if request.depot is not None:
+        for i, route in enumerate(optimal_route_per_vehicle):
+            if len(route) > 1: # Don't do anything for single order routes
+                output[i] = depot_reorder(route, request.depot)
 
     return output
