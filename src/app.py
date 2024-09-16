@@ -1,9 +1,10 @@
-import random
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 import numpy as np
+
 import os
 import math
-from fastapi import FastAPI, HTTPException, Depends, Header
+import time
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
@@ -167,6 +168,87 @@ def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
 @app.get("/")
 def default_test():
     return "Switching to FastAPI"
+
+
+# TODO: This may replace the original endpoint later if suitable
+@app.post("/generate-routes-with-stats", responses={400: {"model": Message}})
+async def generate_routes_with_stats(
+    request: RouteInput, token: str = Depends(token_authentication)
+):
+    # Input should already be type/range validated by pydantic
+
+    # Set up fresh solver strategies
+    try:
+        vehicle_clusterer = vehicle_clusterer_factory.create(
+            request.vehicle_cluster_config
+        )
+        distance_finder = distance_factory.create(request.solver_config.distance)
+        route_solver = solver_factory.create(request.solver_config.type)
+    except ValueError as e:
+        # Should be safe to relay these back to client
+        return JSONResponse(status_code=400, content={"message": str(e)})
+
+    # For recursive, we need to cap max clusters, since it stitches on return
+    # Since capturing substructures matters progressively less, just k-means it
+    subclusterer = KMeansClusterer(
+        request.solver_config.max_solve_size,
+        allow_less_data=True,
+        duplicate_clusters="split",
+    )
+
+    vrp_solver = RecursiveCFRS(
+        vehicle_clusterer,
+        subclusterer,
+        distance_finder,
+        route_solver,
+        request.solver_config.max_solve_size,
+    )
+
+    # Pre-compute Cartesian approx, since it's very likely we will use it
+    new_orders = orders_to_cartesian(request.orders)
+
+    # Attempt to solve VRP
+    compute_start = time.time()
+    try:
+        optimal_route_per_vehicle, cluster_tree = vrp_solver.solve_vrp(new_orders)
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"message": f"Validation error. Payload args may be invalid: {e}"},
+        )
+    except RuntimeError as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "message": f"Error at runtime. Payload data or args may be invalid: {e}"
+            },
+        )
+
+    # Reformat to ID representation for output
+    order_id_routes = []
+    if request.depot is None:
+        # Extract just the IDs, keeping double nested shape
+        order_id_routes = [[o.order_id for o in v] for v in optimal_route_per_vehicle]
+    else:
+        # Otherwise, reorder according to depot
+        for i, route in enumerate(optimal_route_per_vehicle):
+            if len(route) > 1: # Don't do anything for single order routes
+                order_id_routes[i] = depot_reorder(route, request.depot)
+
+    compute_end = time.time()
+
+    # Print clustering results and possible reordering to console
+    display_cluster_tree(cluster_tree, 0)
+    if request.depot is not None:
+        print(f"Heuristically reordered routes: {order_id_routes}")
+
+    # Finally, build the response JSON
+    output = {
+        "routes": order_id_routes,
+        "compute_seconds": compute_end - compute_start,
+    }
+
+    return output
 
 
 @app.post("/generate-routes", responses={400: {"model": Message}})
