@@ -117,8 +117,7 @@ class TSPFormulation:
                 for col_offset in range(col + 1, n):
                     qubit_b = row * n + col_offset
                     qubo_dict[(qubit_a, qubit_b)] = 2 * constraint_factor
-                    # Penalty must be strong enough to offset variable selection incentive, hence double
-                    # TODO: Check if double is needed, since any exceedance inherently violates multiple times anyways
+                    # Penalty must be strong enough to offset variable selection incentive
 
         return qubo_dict
 
