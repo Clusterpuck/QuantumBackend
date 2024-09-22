@@ -188,7 +188,8 @@ class DWaveSolver(RouteSolver):
 
             # Filter to only valid ones
             if self.__validate_permutation(solution_matrix):
-                solution = [np.where(row == 1)[0][0] for row in solution_matrix]
+                # Convert to python ints for consistent strategy interface
+                solution = [int(np.where(row == 1)[0][0]) for row in solution_matrix]
                 valid_distribution[tuple(solution)] = (
                     entry.energy,
                     entry.num_occurrences,

@@ -619,8 +619,7 @@ def test_subdivision(
     expected_deeper_tree: list[list[dict | list]],
     expected_shallower_vrp: list[list[dict]],
 ) -> None:
-    # TODO: Check max_solve_size 2 and 6 (which doesn't even subdivide)
-    # Check that max solve size of 2 creates leaves of max 2
+    # Check that max solve size of 2 does subdivide, with leaves of at most 2
     max_solve_size = 2
     custom_subclusterer = KMeansClusterer(
         max_solve_size,

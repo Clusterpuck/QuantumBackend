@@ -85,7 +85,6 @@ class RecursiveCFRS:
                 nodes = [(o, o) for o in orders]
                 distance_matrix = self.__distance_finder.build_matrix(nodes)
                 solved_labels, _ = self.__route_solver.solve(distance_matrix)
-                # TODO: Drop cost for now, might use later if strategised
 
                 # Reorder order objects by solution
                 base_solution: list[Order] = [orders[new_i] for new_i in solved_labels]

@@ -77,9 +77,11 @@ class GeoCluster:
             # If plane is vertically flat, default new y to the z-axis
             screen_x = np.array([1, 0, 0])
             screen_y = np.array([0, 0, 1])
+            # Also catches 0D normal, though should be impossible given that
+            # initial k-means always partitions the globe or is trivially bad
         else:
             # Else, the new y is the steepest +ve direction on the plane
-            # Double cross does the trick: (norm X up) X norm
+            # Double cross product does the trick: (norm X up) X norm
             # Reordered to retain x's handed-ness on (+xy when viewing at +z)
             screen_x = np.cross([0, 1, 0], normal)
             screen_y = np.cross(normal, screen_x)
