@@ -12,16 +12,21 @@ class DWaveSolver(RouteSolver):
         sampler: dimod.Sampler,  # Injection allows mocking for offline testing
         cost_factor: int = 10,
         constraint_factor: int = 800,
-        chain_strength: int = 800,  # TODO: Check if chain breaks is a problem based on valid solution count and chain_break_frequency. If so, bump it to 1000
-        num_runs: int = 1024,  # Might want to override this depending on problem size and confidence...
+        chain_strength: int = 1600,
+        num_runs: int = 1024,
         max_retries: int = 3,
         is_circuit: bool = False,
-    ):  # Since the D-Wave strategy is fiddly, initialise with extra details
+    ):
         """
         Inits an ATSP solver that uses D-Wave machines.
 
-        TODO: Plan to allow a few more post-init adjustable hyperparams
-        TODO: Plan to move qubo init into public function that can be called again post init with optional new data, allowing either hyperparam optimisation for the same problem or new problem with config reuse
+        Cost-to-constraint ratio of 80 at chain strength 1600 has been
+        experimentally verified to perform decently for <=7 nodes with current
+        technology (Advantage 1) on paths. >=8 are generally unsolvable or inconsistent.
+
+        1024 runs per call gives stable results, but it's possible to reduce
+        this to as low as 200 at the risk of inconsistent solution quality or
+        even complete failures.
 
         Parameters
         ----------
@@ -34,7 +39,8 @@ class DWaveSolver(RouteSolver):
         chain_strength : int, default=800
             Decreases likelihood of chain breaks, but drifts from original problem definition.
         num_runs : int, default=1024
-            More runs increase probability of finding the best solution, but may hit cap or runtime limit.
+            More runs increase the probability of finding the best solution,
+            but may hit D-Wave's license cap or per-call runtime limit.
         max_retries : int, default=3
             Max reattempts if a valid route could not be found.
         is_circuit : bool, default=False
@@ -67,7 +73,7 @@ class DWaveSolver(RouteSolver):
         Raises
         ------
         ValueError
-            If distance matrix is invalid.
+            If distance matrix is invalid or clearly oversized.
         RuntimeError
             If D-Wave cannot find a valid solution within the number of retries
         """
@@ -100,7 +106,6 @@ class DWaveSolver(RouteSolver):
 
         if best_route is None:
             raise RuntimeError("No valid D-Wave solution received")
-            # TODO: Implement a catchable custom error, or else return a guess?
 
         # Finally, derive cost
         current_cost = self.__get_route_cost(

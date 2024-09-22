@@ -11,10 +11,6 @@ class SolverFactory:
     # Validate and decide what ATSP solver to build for the API
     def create(self, solver_type: str) -> RouteSolver:
         if solver_type == "dwave":
-            # Max cluster size is already handled by the dwave solver
-            # TODO: Might need to handle bad k on the endpoint to prevent 500s?
-
-            # TODO: Params need deep tuning
             return DWaveSolver(
                 EmbeddingComposite(
                     DWaveSampler(
@@ -24,7 +20,9 @@ class SolverFactory:
                     )
                 )
             )
-            # Missing tokens are the app's (env) fault, so bubble up
+        # Missing tokens are the app's (env var) fault, so bubble up
+        # NOTE: Solver auto fails fast on >10 nodes, since current machines
+        # simply can't handle it
 
         elif solver_type == "brute":
             return BruteForceSolver()
