@@ -271,6 +271,9 @@ def test_geo_cluster(
     assert dummy_vertical_cluster.log_likelihood == pytest.approx(-73.246, abs=ABS_TOL)
     assert dummy_vertical_cluster.bic == pytest.approx(152.929, abs=ABS_TOL)
 
+    # NOTE: Don't need to check [0, 0, 0] normal, which should be impossible
+    # for our input domain, except maybe one insanely specific edge state.
+
 
 def test_bad_geo_clusters(
     dummy_thin_cluster: GeoCluster,
@@ -350,15 +353,19 @@ def test_geo_x_means(dummy_gaussian_data: np.ndarray) -> None:
     # NOTE: Once again, labels are arbitrary, but failures due to swapped
     # labels are a sign that something changed...
 
-    # Test that it doesn't overgrow
+    # Test that it doesn't overgrow (finite and deterministically consistent)
     x_means = GeoXMeans(init="k-means++", random_state=0, n_init=10).fit(full_dataset)
-    assert len(np.unique(x_means.labels_)) == 12  # Equality for regression?
+    assert len(np.unique(x_means.labels_)) == 12
+
+    # Test that single data points still return gracefully for equal k_init
+    # Failure to split should immediately return as terminating cluster
+    x_means = GeoXMeans(k_init=1, init="k-means++", random_state=0, n_init=10).fit(np.array([[0, 1, 2]]))
+    assert len(x_means.labels_) == 1
+    assert x_means.cluster_log_likelihoods_[0] is None
+
+    # Outer x-means wrapper catches the case of less data than k_init, I think
 
 
-# NOTE: BIC can definitely seem better on semi-thin and small clusters, but
+# NOTE: BIC can seem better on semi-thin and small clusters at first, but
 # that is often because the points are closer and the centroid is great. You
 # can definitely see it get worse with a bad centroids or data distribution.
-
-# TODO: We know single data points are handled, so can add that check later
-# We also know that 0,0,0 normal is handled fine at least for now
-# important regression test, 
