@@ -5,6 +5,7 @@ import os
 import math
 from fastapi import FastAPI, HTTPException, Depends, Header
 import time
+import httpx
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
@@ -235,5 +236,10 @@ async def generate_routes(
         for i, route in enumerate(optimal_route_per_vehicle):
             if len(route) > 1: # Don't do anything for single order routes
                 output[i] = depot_reorder(route, request.depot)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post("https://example.com/api/notify", json=output)
+        if response.status_code != 200:
+            print("Failed to notify:", response.text)
 
     return output
