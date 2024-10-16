@@ -6,6 +6,7 @@ import math
 from fastapi import FastAPI, HTTPException, Depends, Header
 import time
 import httpx
+import threading
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
@@ -14,6 +15,13 @@ from route_optimisation.clusterer.k_means_clusterer import KMeansClusterer
 from route_optimisation.recursive_cfrs import RecursiveCFRS
 from solver_factory import SolverFactory
 
+def task():
+    for i in range(5):
+        print(f"Task is running: {i}")
+        time.sleep(5)  # Simulate some work being done
+
+def main_task():
+    pass
 
 app = FastAPI()
 
@@ -170,13 +178,85 @@ def depot_reorder(route: list[Order], depot: DepotInput) -> list[int]:
 def default_test():
     return "Switching to FastAPI"
 
+async def main_task(request):
+    time.sleep(260)
+    # try:
+    #     vehicle_clusterer = vehicle_clusterer_factory.create(
+    #         request.vehicle_cluster_config
+    #     )
+    #     distance_finder = distance_factory.create(request.solver_config.distance)
+    #     route_solver = solver_factory.create(request.solver_config.type)
+    # except ValueError as e:
+    #     # Should be safe to relay these back to client
+    #     return JSONResponse(status_code=400, content={"message": str(e)})
+
+    # # For recursive, we need to cap max clusters, since it stitches on return
+    # # Since capturing substructures matters progressively less, just k-means it
+    # subclusterer = KMeansClusterer(
+    #     request.solver_config.max_solve_size,
+    #     allow_less_data=True,
+    #     duplicate_clusters="split",
+    # )
+
+    # vrp_solver = RecursiveCFRS(
+    #     vehicle_clusterer,
+    #     subclusterer,
+    #     distance_finder,
+    #     route_solver,
+    #     request.solver_config.max_solve_size,
+    # )
+
+    # # Pre-compute Cartesian approx, since it's very likely we will use it
+    # new_orders = orders_to_cartesian(request.orders)
+
+    # try:
+    #     # Solve VRP
+    #     optimal_route_per_vehicle, cluster_tree = vrp_solver.solve_vrp(new_orders)
+    # except ValueError as e:
+    #     return JSONResponse(
+    #         status_code=400,
+    #         content={"message": f"Validation error. Payload args may be invalid: {e}"},
+    #     )
+    # except RuntimeError as e:
+    #     return JSONResponse(
+    #         status_code=400,
+    #         content={
+    #             "message": f"Error at runtime. Payload data or args may be invalid: {e}"
+    #         },
+    #     )
+
+    # # Print clustering results to console
+    # display_cluster_tree(cluster_tree, 0)
+
+    # # Extract just the IDs, keeping double nested shape
+    # output = [[o.order_id for o in v] for v in optimal_route_per_vehicle]
+
+    # # Reorder according to depot
+    # if request.depot is not None:
+    #     for i, route in enumerate(optimal_route_per_vehicle):
+    #         if len(route) > 1: # Don't do anything for single order routes
+    #             output[i] = depot_reorder(route, request.depot)
+    output = [[1, 5, 542]]
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post("https://routingdata.azurewebsites.net/api/Calculation", json=output)
+        if response.status_code != 200:
+            print("Failed to notify:", response.text)
 
 @app.post("/generate-routes", responses={400: {"model": Message}})
 async def generate_routes(
     request: RouteInput, token: str = Depends(token_authentication)
 ):
+    # Create Task
+    print(request)
+    thread = threading.Thread(target=main_task, args=(request,))
+    print("Before Thread")
+    thread.start()
+    print("After Thread")
+    # Call function
+    # return
     print(request.model_dump())
-    time.sleep(600)
+    return 1
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
@@ -237,9 +317,11 @@ async def generate_routes(
             if len(route) > 1: # Don't do anything for single order routes
                 output[i] = depot_reorder(route, request.depot)
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post("https://example.com/api/notify", json=output)
-        if response.status_code != 200:
-            print("Failed to notify:", response.text)
+    # async with httpx.AsyncClient() as client:
+    #     response = await client.post("https://example.com/api/notify", json=output)
+    #     if response.status_code != 200:
+    #         print("Failed to notify:", response.text)
+    
+    # RUN THE TASK
 
-    return output
+    #return output
