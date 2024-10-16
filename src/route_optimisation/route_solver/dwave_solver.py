@@ -104,11 +104,8 @@ class DWaveSolver(RouteSolver):
             response = self.__sampler.sample_qubo(
                 qubo, chain_strength=self.__chain_strength, num_reads=self.__num_runs
             )
-            print("response", response)
             best_route = self.__decode_solution(response)
-            print("best_route", best_route)
             tries += 1
-            print("Tries after increment", tries)
 
         if best_route is None:
             raise RuntimeError("No valid D-Wave solution received")

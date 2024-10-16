@@ -4,6 +4,7 @@ import numpy as np
 import os
 import math
 from fastapi import FastAPI, HTTPException, Depends, Header
+import time
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
@@ -174,6 +175,7 @@ async def generate_routes(
     request: RouteInput, token: str = Depends(token_authentication)
 ):
     print(request.model_dump())
+    time.sleep(600)
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
