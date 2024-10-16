@@ -173,7 +173,7 @@ def default_test():
 async def generate_routes(
     request: RouteInput, token: str = Depends(token_authentication)
 ):
-    print(request)
+    print(request.model_dump())
     # Input should already be type/range validated by pydantic
 
     # Since requests should be stateless and unshared, set up new solvers
