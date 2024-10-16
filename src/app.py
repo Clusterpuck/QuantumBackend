@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 import time
 import httpx
 import threading
+import asyncio
 
 from vehicle_clusterer_factory import VehicleClustererFactory
 from distance_factory import DistanceFactory
@@ -179,7 +180,10 @@ def default_test():
     return "Switching to FastAPI"
 
 async def main_task(request):
-    time.sleep(260)
+    await asyncio.sleep(250)
+    # for i in range(10000):
+    #     pass
+    print("FINISHED")
     # try:
     #     vehicle_clusterer = vehicle_clusterer_factory.create(
     #         request.vehicle_cluster_config
@@ -249,13 +253,19 @@ async def generate_routes(
 ):
     # Create Task
     print(request)
-    thread = threading.Thread(target=main_task, args=(request,))
+    #thread = threading.Thread(target=main_2, args=(request,))
+    #thread = threading.Thread()
+    #thread.target = asyncio.create_task(main_task(request))
+
+    asyncio.create_task(main_task(request))
     print("Before Thread")
-    thread.start()
+    #thread.start()
+
     print("After Thread")
     # Call function
     # return
     print(request.model_dump())
+    print(123123)
     return 1
     # Input should already be type/range validated by pydantic
 
