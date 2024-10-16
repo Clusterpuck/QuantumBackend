@@ -94,6 +94,9 @@ class DWaveSolver(RouteSolver):
             self.__is_circuit,
         )
 
+        print("Distance Matrix for QUBO:", distance_matrix)
+        print("QUBO:", qubo)
+
         # Try sending to D-Wave machine
         tries = 0
         best_route = None
@@ -101,8 +104,11 @@ class DWaveSolver(RouteSolver):
             response = self.__sampler.sample_qubo(
                 qubo, chain_strength=self.__chain_strength, num_reads=self.__num_runs
             )
+            print("response", response)
             best_route = self.__decode_solution(response)
+            print("best_route", best_route)
             tries += 1
+            print("Tries after increment", tries)
 
         if best_route is None:
             raise RuntimeError("No valid D-Wave solution received")
@@ -112,6 +118,7 @@ class DWaveSolver(RouteSolver):
             best_route, distance_matrix, self.__is_circuit
         )
 
+        print("BestRoute, CurrCost", best_route, current_cost)
         return best_route, current_cost
 
     def __get_route_cost(
@@ -178,6 +185,16 @@ class DWaveSolver(RouteSolver):
         best_solution : list of int or None
             The valid route with the lowest energy, if found.
         """
+        try:
+            print("Response:", response, type(response))
+            print("ResponseRecord:", response.record, type(response.record))
+            for entry in response.record:
+                print(entry)
+            print("ResponseRecordEnergy:", response.record.energy)
+            print("Node Count", int(np.sqrt(len(response.record[0].sample))))
+        except Exception as e:
+            print("Exception", e)
+
         valid_distribution = {}
         min_energy = np.max(response.record.energy)
         best_solution = None

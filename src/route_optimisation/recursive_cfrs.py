@@ -84,6 +84,7 @@ class RecursiveCFRS:
                 # Solve symmetric TSP (single point nodes)
                 nodes = [(o, o) for o in orders]
                 distance_matrix = self.__distance_finder.build_matrix(nodes)
+                print("Solve1", distance_matrix)
                 solved_labels, _ = self.__route_solver.solve(distance_matrix)
 
                 # Reorder order objects by solution
@@ -123,6 +124,7 @@ class RecursiveCFRS:
 
         # Solve current cluster's TSP using the asymmetric node data...
         distance_matrix = self.__distance_finder.build_matrix(spoofed_nodes)
+        print("Solve2", distance_matrix)
         solved_labels, _ = self.__route_solver.solve(distance_matrix)
         # NOTE: Drop cost for now, might use later if also building costs
 
