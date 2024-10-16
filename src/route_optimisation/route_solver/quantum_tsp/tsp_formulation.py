@@ -167,6 +167,10 @@ class TSPFormulation:
         # Normalise, so that relative scaling factors work
         max_distance = np.max(np.array(distance_matrix))
         scaled_matrix = distance_matrix / max_distance
+        if max_distance > 0:
+            scaled_matrix = distance_matrix / max_distance
+        else:
+            scaled_matrix = distance_matrix
         n = len(distance_matrix)
 
         # Enforce minimum length
